@@ -1,0 +1,6 @@
+{
+  "name": "Denver Is Alive Dashboard",
+  "description": "A dashboard to generate and manage personal game file tokens based on the provided screenshots.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
