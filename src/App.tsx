@@ -216,127 +216,160 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#7780e8] to-[#925dd7] text-slate-800 font-sans relative overflow-x-hidden p-4 sm:p-6 pb-24">
         {/* Top Bar */}
-        <header className="flex justify-between items-center mb-6 max-w-lg mx-auto">
+        <header className="flex justify-between items-center mb-8 max-w-7xl mx-auto w-full">
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">IP Manager - {token || 'No Token'}</h1>
-            <a href="#" className="text-white/80 text-xs mt-1 truncate max-w-[200px]">{basePath}/{token ? `Token_${token}` : ''}</a>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <Globe className="text-white animate-pulse" />
+              IP Manager <span className="opacity-60 text-lg">/ {token || 'No Token'}</span>
+            </h1>
+            <div className="flex items-center gap-2 text-white/70 text-sm mt-1">
+               <Monitor size={14} />
+               <span className="truncate max-w-[200px] md:max-w-md">{basePath}/{token ? `Token_${token}` : ''}</span>
+            </div>
           </div>
           <button 
             onClick={() => setCurrentView('dashboard')}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+            className="p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all shadow-lg backdrop-blur-md"
           >
-            <X size={24} />
+            <X size={28} />
           </button>
         </header>
 
-        <main className="max-w-lg mx-auto space-y-4 relative z-10">
-          {/* Card 1 */}
-          <div className="bg-white rounded-2xl p-5 shadow-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <Globe size={20} className="text-[#0ea5e9]" />
-              <h2 className="text-lg font-bold text-slate-800">IP Manager</h2>
-            </div>
-            
-            <div className="space-y-3 mb-6">
-              {!hasToken ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <p className="text-slate-500 mb-4 text-sm font-medium text-center">No active token found. Generate one to view IP manager details.</p>
-                  <button 
-                    onClick={handleGenerate}
-                    className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-2.5 px-8 rounded-xl transition-colors shadow-lg"
-                  >
-                    Generate Token
-                  </button>
+        <main className="max-w-7xl mx-auto space-y-6 relative z-10 lg:grid lg:grid-cols-12 lg:gap-8 lg:space-y-0">
+          <div className="lg:col-span-5 space-y-6">
+            {/* Card 1: Token Summary */}
+            <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Shield size={22} className="text-[#0ea5e9]" />
                 </div>
-              ) : (
-               <>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium text-sm">Token ID:</span>
-                  <span className="font-mono text-slate-700">{token || '--'}</span>
+                <h2 className="text-xl font-bold text-slate-800">Connection Status</h2>
+              </div>
+              
+              <div className="space-y-4 mb-8">
+                {!hasToken ? (
+                  <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <p className="text-slate-500 mb-6 text-sm font-medium text-center max-w-[200px]">No active token found. Generate one to manage IPs.</p>
+                    <button 
+                      onClick={handleGenerate}
+                      className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-10 rounded-xl transition-all shadow-xl shadow-blue-500/20 active:scale-95"
+                    >
+                      Generate Token
+                    </button>
+                  </div>
+                ) : (
+                 <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">Token ID</span>
+                    <span className="font-mono font-bold text-slate-800 bg-white px-3 py-1 rounded-lg border border-slate-200">{token || '--'}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">Expires On</span>
+                    <span className="font-mono text-slate-700 font-medium">{expiryFormatted.date}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="text-slate-500 font-bold text-xs uppercase tracking-wider">Security Status</span>
+                    {isExpired ? (
+                      <span className="px-4 py-1.5 bg-amber-100 text-amber-700 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 border border-amber-200">
+                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div> EXPIRED
+                      </span>
+                    ) : (
+                      <span className="px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 border border-emerald-200">
+                       <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> ACTIVE
+                      </span>
+                    )}
+                  </div>
+                 </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#10b981] rounded-2xl p-6 text-white shadow-lg shadow-emerald-500/20">
+                  <div className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Devices</div>
+                  <div className="text-3xl font-black">{activeDevices}<span className="text-lg opacity-60 ml-1">/ {hasToken ? '4' : '0'}</span></div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium text-sm">Expires At:</span>
-                  <span className="font-mono text-slate-700">{expiryFormatted.date} {expiryFormatted.time}</span>
+                <div className="bg-[#7c3aed] rounded-2xl p-6 text-white shadow-lg shadow-violet-500/20">
+                  <div className="text-xs font-black uppercase tracking-widest mb-1 opacity-80">Logged IPs</div>
+                  <div className="text-3xl font-black">{activeIps.length}</div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium text-sm">Status:</span>
-                  {isExpired ? (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> EXPIRED
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1.5">
-                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> ACTIVE
-                    </span>
-                  )}
-                </div>
-               </>
-              )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#10b981] rounded-xl p-4 text-white">
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-90">Active Devices</div>
-                <div className="text-2xl font-bold">{activeDevices}/{hasToken ? '4' : '0'}</div>
-              </div>
-              <div className="bg-[#7c3aed] rounded-xl p-4 text-white">
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-90">Total IPs</div>
-                <div className="text-2xl font-bold">{activeIps.length}</div>
-              </div>
-            </div>
+            <button 
+               className="w-full bg-white/20 hover:bg-white/30 text-white font-black py-5 rounded-3xl flex items-center justify-center gap-3 transition-all border border-white/20 shadow-xl backdrop-blur-md active:scale-95 group uppercase tracking-widest"
+            >
+              <Activity size={22} className="group-hover:rotate-12 transition-transform" />
+              REFRESH SYSTEM STATUS
+            </button>
           </div>
 
-          {/* Card 2 */}
-          <div className="bg-white rounded-2xl p-5 shadow-xl">
-             <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-              <Calendar size={18} className="text-red-500" />
-              <h2 className="text-md font-bold text-slate-800">Last Login Devices ( 24h )</h2>
-            </div>
-            
-            <div className="space-y-3">
-              {activeIps.length === 0 ? (
-                <div className="text-center py-4 text-slate-500 text-sm">
-                  No active devices using your token.
+          <div className="lg:col-span-7">
+            {/* Card 2: Active Devices List */}
+            <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-2xl h-full flex flex-col">
+               <div className="flex items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                    <Calendar size={22} className="text-red-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800">Connected Devices (24h)</h2>
                 </div>
-              ) : (
-                activeIps.map(device => {
-                  const d = new Date(device.timestamp);
-                  const deviceDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                  const deviceTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-
-                  return (
-                    <div key={device.id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-slate-200 p-3 rounded-xl shadow-sm gap-3">
-                      <div>
-                        <div className="font-mono text-sm text-slate-700 mb-0.5">{device.ip}</div>
-                        <div className="text-xs text-slate-500">{deviceDate} {deviceTime}</div>
-                      </div>
-                      <button 
-                        onClick={() => setActiveIps(prev => prev.filter(d => d.id !== device.id))}
-                        className="bg-[#ef4444] hover:bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-sm self-start sm:self-auto"
-                      >
-                        REMOVE
-                      </button>
+                <div className="bg-slate-100 px-4 py-1.5 rounded-full text-slate-600 text-xs font-bold uppercase tracking-wider">
+                  Live Feed
+                </div>
+              </div>
+              
+              <div className="space-y-4 flex-1">
+                {activeIps.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-400">
+                    <div className="p-6 bg-slate-50 rounded-full mb-4">
+                      <Monitor size={48} className="opacity-20" />
                     </div>
-                  );
-                })
-              )}
+                    <p className="text-lg font-medium">No active connections logged</p>
+                    <p className="text-sm">Your token activity will appear here</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {activeIps.map(device => {
+                      const d = new Date(device.timestamp);
+                      const deviceDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                      const deviceTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                      return (
+                        <div key={device.id} className="group flex items-center justify-between bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-100 p-4 rounded-2xl transition-all hover:shadow-lg">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors shrink-0">
+                               <Monitor size={24} className="text-slate-400 group-hover:text-blue-500" />
+                            </div>
+                            <div className="truncate">
+                              <div className="font-mono text-sm font-bold text-slate-700 mb-0.5 truncate">{device.ip}</div>
+                              <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                                <Clock size={12} /> {deviceDate}, {deviceTime}
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setActiveIps(prev => prev.filter(d => d.id !== device.id))}
+                            className="bg-[#ef4444] hover:bg-red-600 text-white p-2.5 rounded-xl transition-all shadow-md hover:shadow-red-200 active:scale-90 shrink-0 ml-2"
+                            title="Disconnect Device"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          <button 
-             className="w-full bg-white/20 hover:bg-white/30 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors border border-white/10 shadow-lg backdrop-blur-sm"
-          >
-            <Activity size={18} />
-            REFRESH STATUS
-          </button>
         </main>
 
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-          <button className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg transition-colors">
-            <ArrowUp size={20} />
+        <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
+          <button className="p-4 bg-white/20 hover:bg-white/40 backdrop-blur-xl rounded-full text-white shadow-2xl transition-all border border-white/20 active:scale-90 hover:translate-y-[-2px]">
+            <ArrowUp size={24} />
           </button>
-          <button className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white shadow-lg transition-colors">
-            <ArrowDown size={20} />
+          <button className="p-4 bg-white/20 hover:bg-white/40 backdrop-blur-xl rounded-full text-white shadow-2xl transition-all border border-white/20 active:scale-90 hover:translate-y-[2px]">
+            <ArrowDown size={24} />
           </button>
         </div>
       </div>
@@ -347,45 +380,47 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between p-4 bg-[#0a1128] border-b border-slate-800 relative z-10 sticky top-0">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-gradient-to-br from-[#38bdf8] to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-               <Tv size={20} className="text-white" />
+        <header className="flex items-center justify-between p-4 px-6 lg:px-10 bg-[#0a1128] border-b border-slate-800 relative z-10 sticky top-0">
+          <div className="flex items-center gap-4">
+             <div className="w-12 h-12 bg-gradient-to-br from-[#38bdf8] to-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30">
+               <Tv size={24} className="text-white" />
              </div>
-             <h1 className="text-xl font-bold text-[#38bdf8] tracking-wide">Channel Customizer</h1>
+             <h1 className="text-2xl font-bold text-[#38bdf8] tracking-wide">Channel Customizer</h1>
           </div>
           <button 
             onClick={() => setCurrentView('dashboard')}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
           >
-            <X size={24} />
+            <X size={28} />
           </button>
         </header>
 
         {/* Badges Bar */}
-        <div className="flex items-center gap-3 p-4 border-b border-slate-800 bg-[#0a1128] overflow-x-auto overflow-y-hidden whitespace-nowrap hide-scrollbar flex-none">
-           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-300 text-sm">
-             <LayoutGrid size={16} className="text-[#38bdf8]" />
-             <span>Genres <strong className="text-[#38bdf8] ml-1">{genres.length}</strong></span>
-           </div>
-           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-300 text-sm">
-             <CircleDot size={16} className="text-[#38bdf8]" />
-             <span>Channels <strong className="text-[#38bdf8] ml-1">1275</strong></span>
-           </div>
-           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-300 text-sm">
-             <Check size={16} className="text-[#34d399]" />
-             <span>Selected <strong className="text-[#34d399] ml-1">{selectedGenres.length}</strong></span>
-           </div>
+        <div className="bg-[#0a1128]/80 backdrop-blur-md border-b border-slate-800 sticky top-[81px] z-10">
+          <div className="flex items-center gap-4 p-4 px-6 lg:px-10 overflow-x-auto whitespace-nowrap hide-scrollbar max-w-7xl mx-auto">
+             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-sm font-medium shadow-sm">
+               <LayoutGrid size={18} className="text-[#38bdf8]" />
+               <span>Genres <strong className="text-[#38bdf8] ml-2 text-lg">{genres.length}</strong></span>
+             </div>
+             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-sm font-medium shadow-sm">
+               <CircleDot size={18} className="text-[#38bdf8]" />
+               <span>Channels <strong className="text-[#38bdf8] ml-2 text-lg">1275</strong></span>
+             </div>
+             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-sm font-medium shadow-sm">
+               <Check size={18} className="text-[#34d399]" />
+               <span>Selected <strong className="text-[#34d399] ml-2 text-lg">{selectedGenres.length}</strong></span>
+             </div>
+          </div>
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-4 pb-28 overflow-y-auto w-full max-w-lg mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <h2 className="text-sm font-bold text-[#38bdf8] uppercase tracking-widest shrink-0">Genre Folders</h2>
-            <div className="h-px bg-[#1e293b] flex-1"></div>
+        <main className="flex-1 p-6 lg:p-10 pb-36 overflow-y-auto w-full max-w-7xl mx-auto">
+          <div className="flex items-center gap-6 mb-10">
+            <h2 className="text-lg lg:text-xl font-bold text-[#38bdf8] uppercase tracking-[0.2em] shrink-0">Genre Folders</h2>
+            <div className="h-px bg-gradient-to-r from-[#1e293b] to-transparent flex-1"></div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {genres.map(genre => {
               const isSelected = selectedGenres.includes(genre.id);
               return (
@@ -398,19 +433,19 @@ export default function App() {
                         : [...prev, genre.id]
                     );
                   }}
-                  className={`relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all cursor-pointer ${isSelected ? 'bg-[#1e293b] border-[#38bdf8]' : 'bg-[#111827] border-slate-800 hover:border-slate-700'}`}
+                  className={`group relative flex flex-col items-center justify-center p-8 lg:p-10 rounded-[32px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-2xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-xl'}`}
                 >
                    {isSelected && (
-                     <div className="absolute top-3 right-3 text-[#38bdf8]">
-                       <CheckCircle2 size={22} className="fill-[#38bdf8]/20" />
+                     <div className="absolute top-5 right-5 text-[#38bdf8] animate-in zoom-in duration-300">
+                       <CheckCircle2 size={26} className="fill-[#38bdf8]/20" />
                      </div>
                    )}
-                   <div className="w-16 h-16 bg-[#1e293b] rounded-2xl flex items-center justify-center text-[#38bdf8] mb-4 shadow-inner">
+                   <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-lg shadow-blue-500/40 translate-y-[-4px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
                      {genre.icon}
                    </div>
-                   <h3 className="font-bold text-slate-200 text-center mb-3 leading-tight">{genre.title}</h3>
-                   <div className="px-4 py-1.5 rounded-full bg-[#1e293b] text-slate-400 text-xs font-bold border border-slate-700">
-                     {genre.count} ch
+                   <h3 className="text-xl font-bold text-slate-100 text-center mb-4 leading-tight">{genre.title}</h3>
+                   <div className={`px-6 py-2 rounded-full font-bold text-sm border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
+                     {genre.count} Channels
                    </div>
                 </div>
               );
@@ -419,23 +454,23 @@ export default function App() {
         </main>
 
         {/* Bottom Sticky Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128] border-t border-slate-800 p-4 z-20">
-          <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
-             <div className="text-slate-400 text-sm leading-tight flex-1">
-               <div><strong className="text-[#38bdf8] text-base">{selectedGenres.length}</strong> selected across</div>
-               <div><strong className="text-[#38bdf8] text-base">{genres.length}</strong> genres</div>
+        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+             <div className="text-slate-300 text-center sm:text-left">
+               <div className="text-lg lg:text-xl"><strong className="text-[#38bdf8] text-2xl px-1">{selectedGenres.length}</strong> genres selected</div>
+               <div className="text-slate-500 font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
              </div>
-             <div className="flex gap-3">
-               <button className="flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg text-sm">
-                 <Save size={18} />
+             <div className="flex gap-4 w-full sm:w-auto">
+               <button className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-emerald-500/20 text-lg">
+                 <Save size={22} />
                  Save & Submit
                </button>
                <button 
                  onClick={() => setSelectedGenres([])}
-                 className="flex items-center justify-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-3.5 px-6 rounded-xl transition-colors shadow-lg text-sm"
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-orange-500/20 text-lg"
                >
-                 <Trash2 size={18} />
-                 Reset All
+                 <Trash2 size={22} />
+                 Reset
                </button>
              </div>
           </div>
@@ -446,34 +481,61 @@ export default function App() {
 
   if (currentView === 'contact-us') {
     return (
-      <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden p-6 pb-24">
-        <header className="flex items-center justify-center mb-8 pt-4 relative max-w-lg mx-auto">
-           <h1 className="text-3xl font-bold text-slate-100">Contact Us</h1>
+      <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
+        <header className="flex items-center justify-between p-6 lg:p-10 max-w-7xl mx-auto w-full">
+           <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter">Get In Touch</h1>
            <button 
             onClick={() => setCurrentView('dashboard')}
-            className="absolute right-0 top-1 p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-4 bg-slate-800/50 hover:bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all border border-slate-700 shadow-xl"
           >
-            <X size={24} />
+            <X size={32} />
           </button>
         </header>
 
-        <main className="max-w-md mx-auto relative">
-          <div className="bg-[#111827] rounded-[24px] p-6 shadow-xl border border-slate-800 text-center">
-             <div className="w-16 h-16 bg-[#0088cc]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#0088cc]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-             </div>
-             <h2 className="text-xl font-bold text-white mb-2">Reach out on Telegram</h2>
-             <p className="text-slate-400 text-sm mb-6">
-                Join our community to get help, share feedback, or just say hi!
-             </p>
-             <a 
-               href="https://t.me/xocietylive" 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="w-full inline-flex font-bold justify-center items-center gap-2 bg-[#0088cc] hover:bg-[#0077b3] text-white py-3 rounded-xl transition-colors text-lg"
-             >
-               Open Telegram
-             </a>
+        <main className="flex-1 flex items-center justify-center p-6 pb-24">
+          <div className="max-w-7xl mx-auto w-full lg:grid lg:grid-cols-2 lg:gap-12 items-center">
+            <div className="hidden lg:block space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-6xl font-black text-white leading-none">Connect with<br/>The <span className="text-indigo-500">Society.</span></h2>
+                <p className="text-xl text-slate-400 max-w-md leading-relaxed">
+                  Join thousands of users in our community. Get real-time support and the latest updates directly.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-16 h-16 bg-slate-800/80 rounded-2xl flex items-center justify-center border border-slate-700 shadow-xl">
+                  <Activity className="text-indigo-400" size={32} />
+                </div>
+                <div className="w-16 h-16 bg-slate-800/80 rounded-2xl flex items-center justify-center border border-slate-700 shadow-xl">
+                  <Globe className="text-blue-400" size={32} />
+                </div>
+                <div className="w-16 h-16 bg-slate-800/80 rounded-2xl flex items-center justify-center border border-slate-700 shadow-xl">
+                  <Shield className="text-emerald-400" size={32} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-[#111827] to-[#0a1128] rounded-[48px] p-10 lg:p-16 shadow-[0_30px_100px_rgba(0,0,0,0.6)] border border-slate-800/50 text-center relative overflow-hidden group">
+               <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px] group-hover:bg-indigo-600/20 transition-all duration-700"></div>
+               
+               <div className="relative z-10">
+                 <div className="w-24 h-24 bg-[#0088cc]/10 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl border border-[#0088cc]/20 group-hover:scale-110 transition-transform duration-500">
+                    <svg className="w-12 h-12 text-[#0088cc]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                 </div>
+                 <h2 className="text-3xl lg:text-4xl font-black text-white mb-4 tracking-tight">Our Telegram Channel</h2>
+                 <p className="text-slate-400 text-lg mb-10 max-w-sm mx-auto leading-relaxed">
+                    Join our vibrant community for instant assistance, feedback sessions, and exclusive announcements.
+                 </p>
+                 <a 
+                   href="https://t.me/xocietylive" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="w-full inline-flex font-black justify-center items-center gap-4 bg-[#0088cc] hover:bg-[#0077b3] text-white py-5 rounded-2xl transition-all shadow-[0_20px_50px_rgba(0,136,204,0.3)] hover:shadow-[0_10px_30px_rgba(0,136,204,0.4)] text-xl active:scale-95 group uppercase tracking-widest"
+                 >
+                   Open Community
+                   <Globe size={24} className="group-hover:rotate-12 transition-transform" />
+                 </a>
+               </div>
+            </div>
           </div>
         </main>
       </div>
@@ -482,202 +544,199 @@ export default function App() {
 
   if (currentView === 'add-items') {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-200 font-sans relative overflow-x-hidden p-6 pb-24">
-        <header className="flex items-center justify-center mb-8 pt-4 relative max-w-lg mx-auto">
-           <h1 className="text-3xl font-bold text-slate-100">Channel Addon</h1>
+      <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
+        <header className="flex items-center justify-between p-6 lg:p-10 max-w-7xl mx-auto w-full shrink-0">
+           <div className="space-y-1">
+             <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter">Channel Addon</h1>
+             <div className="flex items-center gap-2 text-indigo-400 font-black tracking-widest text-sm uppercase">
+               <Key size={16} /> Token: {token || 'None'}
+             </div>
+           </div>
            <button 
             onClick={() => setCurrentView('dashboard')}
-            className="absolute right-0 top-1 p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-4 bg-slate-800/50 hover:bg-slate-800 rounded-3xl text-slate-400 hover:text-white transition-all border border-slate-700 shadow-2xl group active:scale-95"
           >
-            <X size={24} />
+            <X size={32} className="group-hover:rotate-90 transition-transform" />
           </button>
         </header>
 
-        <main className="max-w-md mx-auto space-y-6 relative">
-          <div className="flex justify-center mb-6">
-            <div className="bg-[#1e293b]/80 border border-[#334155] text-indigo-300 px-5 py-2.5 rounded-2xl flex items-center gap-2 font-bold">
-               <Key size={18} /> {token || 'No Token'}
-            </div>
-          </div>
-
-          <div className="bg-[#111827] rounded-[24px] p-6 shadow-xl border border-slate-800">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-[#2dd4bf] rounded-2xl flex items-center justify-center text-slate-900 shrink-0">
-                <Plus size={24} strokeWidth={2.5} />
-              </div>
-              <h2 className="text-[22px] font-bold text-white">Add New Channel</h2>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                  <Monitor size={16} className="text-blue-400" /> Channel Name
-                </label>
-                <input 
-                  type="text" 
-                  value={channelName}
-                  onChange={(e) => setChannelName(e.target.value)}
-                  placeholder="e.g., Google HD"
-                  className="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                  <ImageIcon size={16} className="text-blue-400" /> Logo URL
-                </label>
-                <input 
-                  type="text" 
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://google.com/image.png"
-                  className="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-xl px-5 py-4 text-slate-400 focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                  <LinkIcon size={16} className="text-blue-400" /> Channel URL
-                </label>
-                <input 
-                  type="text" 
-                  value={channelUrl}
-                  onChange={(e) => setChannelUrl(e.target.value)}
-                  placeholder="https://dai.google.com/stream.m3u8"
-                  className="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-xl px-5 py-4 text-slate-400 focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm leading-relaxed overflow-hidden text-ellipsis"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                  <Shield size={16} className="text-blue-400" /> DRM Protection
-                </label>
-                <div 
-                  className="w-full bg-[#1e293b]/40 border border-blue-500/50 rounded-xl px-5 py-4 text-white cursor-pointer flex justify-between items-center transition-colors shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                  onClick={() => setIsDrmDropdownOpen(!isDrmDropdownOpen)}
-                >
-                   {drmType}
-                   <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-slate-400"></div>
+        <main className="flex-1 p-6 lg:p-10 pb-24 max-w-7xl mx-auto w-full lg:grid lg:grid-cols-12 lg:gap-10 overflow-y-auto">
+          {/* Add New Channel Card */}
+          <div className="lg:col-span-5 mb-8 lg:mb-0">
+            <div className="bg-gradient-to-b from-[#1e293b] to-[#0f172a] rounded-[40px] p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 sticky top-0">
+              <div className="flex items-center gap-5 mb-10">
+                <div className="w-16 h-16 bg-[#2dd4bf] rounded-[24px] flex items-center justify-center text-slate-900 shadow-xl shadow-teal-500/20">
+                  <Plus size={32} strokeWidth={3} />
                 </div>
-                
-                {isDrmDropdownOpen && (
-                  <div className="absolute top-[88px] left-0 right-0 bg-[#fff1ed] rounded-3xl p-3 z-20 shadow-2xl overflow-hidden mt-2">
-                     {['No DRM', 'ClearKey', 'Widevine'].map((type) => (
-                       <div 
-                         key={type}
-                         onClick={() => { setDrmType(type); setIsDrmDropdownOpen(false); }}
-                         className="px-5 py-4 text-slate-900 text-lg hover:bg-orange-100/50 rounded-2xl cursor-pointer flex justify-between items-center transition-colors"
-                       >
-                         {type}
-                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${drmType === type ? 'border-[#c2410c]' : 'border-slate-400'}`}>
-                           {drmType === type && <div className="w-2.5 h-2.5 bg-[#c2410c] rounded-full"></div>}
-                         </div>
-                       </div>
-                     ))}
-                  </div>
-                )}
+                <h2 className="text-3xl font-black text-white tracking-tight">New Channel</h2>
               </div>
-
-              {drmType !== 'No DRM' && (
-                <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                  <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                    <Key size={16} className="text-blue-400" /> DRM Key/License URL
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Monitor size={14} className="text-blue-500" /> Name
                   </label>
                   <input 
                     type="text" 
-                    value={drmKey}
-                    onChange={(e) => setDrmKey(e.target.value)}
-                    placeholder="Enter DRM data"
-                    className="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-xl px-5 py-4 text-slate-400 focus:outline-none focus:border-blue-500 transition-colors font-mono text-sm leading-relaxed"
+                    value={channelName}
+                    onChange={(e) => setChannelName(e.target.value)}
+                    placeholder="Premium Sports HD"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-600"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="text-slate-300 text-sm font-bold flex items-center gap-2 mb-2 uppercase tracking-wide opacity-90">
-                  <User size={16} className="text-blue-400" /> Custom User-Agent
-                </label>
-                <textarea 
-                  value={userAgent}
-                  onChange={(e) => setUserAgent(e.target.value)}
-                  placeholder="Leave blank for default"
-                  rows={3}
-                  className="w-full bg-[#1e293b]/40 border border-slate-700/60 rounded-xl px-5 py-4 text-slate-500 font-mono text-sm focus:outline-none focus:border-blue-500 transition-colors resize-none leading-relaxed"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <ImageIcon size={14} className="text-blue-500" /> Logo (URL)
+                  </label>
+                  <input 
+                    type="text" 
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="https://imgur.com/logo.png"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                  />
+                </div>
 
-              <div className="pt-8">
-                <button 
-                   onClick={() => {
-                     if (channelUrl) {
-                       setChannels(prev => [...prev, {
-                         id: Math.random().toString(36).substring(7),
-                         name: channelName || 'Custom Channel',
-                         logo: logoUrl,
-                         url: channelUrl,
-                         drmType,
-                         drmKey,
-                         userAgent
-                       }]);
-                       setChannelName(''); setLogoUrl(''); setChannelUrl(''); setDrmType('No DRM'); setDrmKey(''); setUserAgent('');
-                     } else {
-                       alert('Please enter a Channel URL');
-                     }
-                   }}
-                   className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold py-4 rounded-full shadow-[0_4px_14px_0_rgba(79,70,229,0.39)] transition-colors text-lg"
-                >
-                  + Add Channel
-                </button>
+                <div className="space-y-2">
+                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <LinkIcon size={14} className="text-blue-500" /> Stream URL
+                  </label>
+                  <input 
+                    type="text" 
+                    value={channelUrl}
+                    onChange={(e) => setChannelUrl(e.target.value)}
+                    placeholder="https://cdn.example.com/live.m3u8"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                  />
+                </div>
+
+                <div className="relative space-y-2">
+                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Shield size={14} className="text-blue-500" /> DRM Security
+                  </label>
+                  <div 
+                    className="w-full bg-slate-900/50 border-2 border-blue-500/30 rounded-2xl px-6 py-4 text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-800 shadow-lg shadow-blue-500/5"
+                    onClick={() => setIsDrmDropdownOpen(!isDrmDropdownOpen)}
+                  >
+                     <span className="font-bold">{drmType}</span>
+                     <div className={`transition-transform duration-300 ${isDrmDropdownOpen ? 'rotate-180' : ''}`}>
+                       <ArrowDown size={18} />
+                     </div>
+                  </div>
+                  
+                  {isDrmDropdownOpen && (
+                    <div className="absolute top-[90px] left-0 right-0 bg-[#fff5f2] rounded-3xl p-3 z-30 shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-in slide-in-from-top-2 duration-200">
+                       {['No DRM', 'ClearKey', 'Widevine'].map((type) => (
+                         <div 
+                           key={type}
+                           onClick={() => { setDrmType(type); setIsDrmDropdownOpen(false); }}
+                           className={`px-6 py-4 text-lg font-bold rounded-2xl cursor-pointer flex justify-between items-center transition-all ${drmType === type ? 'bg-orange-500 text-white' : 'text-slate-800 hover:bg-orange-50'}`}
+                         >
+                           {type}
+                           {drmType === type && <Check size={20} />}
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                </div>
+
+                {drmType !== 'No DRM' && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-4">
+                    <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                      <Key size={14} className="text-blue-500" /> DRM License Key
+                    </label>
+                    <input 
+                      type="text" 
+                      value={drmKey}
+                      onChange={(e) => setDrmKey(e.target.value)}
+                      placeholder="License server URL or ClearKey JSON"
+                      className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="pt-6">
+                  <button 
+                     onClick={() => {
+                       if (channelUrl) {
+                         setChannels(prev => [...prev, {
+                           id: Math.random().toString(36).substring(7),
+                           name: channelName || 'Custom Channel',
+                           logo: logoUrl,
+                           url: channelUrl,
+                           drmType,
+                           drmKey,
+                           userAgent
+                         }]);
+                         setChannelName(''); setLogoUrl(''); setChannelUrl(''); setDrmType('No DRM'); setDrmKey(''); setUserAgent('');
+                       } else {
+                         alert('Channel URL is mandatory');
+                       }
+                     }}
+                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-full shadow-[0_15px_40px_rgba(79,70,229,0.4)] hover:shadow-[0_10px_25px_rgba(79,70,229,0.5)] active:scale-95 transition-all text-xl uppercase tracking-widest"
+                  >
+                    🚀 Register Channel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Your Channels Card */}
-          <div className="bg-[#111827] rounded-[24px] p-6 shadow-xl border border-slate-800">
-            <div className="flex items-center justify-between mb-8 text-white min-h-[50px] mt-2">
-              <div className="flex items-center gap-4">
-                <List size={28} className="text-[#60a5fa]" />
-                <h2 className="text-2xl font-bold leading-tight">Your<br/>Channels</h2>
-              </div>
-              <div className="bg-[#6366f1] text-white px-5 py-2.5 rounded-xl text-center shadow-lg">
-                <div className="font-bold text-sm leading-tight">{channels.length}</div>
-                <div className="text-[11px] font-bold tracking-wide">channels</div>
-              </div>
-            </div>
-
-            {channels.length === 0 ? (
-              <div className="text-center py-10 flex flex-col items-center">
-                <div className="w-[90px] h-[90px] bg-slate-800/80 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                   <Tv size={42} className="text-[#60a5fa]" />
-                </div>
-                <h3 className="text-[22px] font-bold text-white mb-2 leading-tight">No Channels Yet</h3>
-                <p className="text-slate-400 text-[15px] max-w-[200px] mx-auto">
-                  Start by adding your first custom channel
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {channels.map(channel => (
-                  <div key={channel.id} className="bg-[#1e293b]/40 border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4 truncate">
-                      <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-                        {channel.logo ? <img src={channel.logo} alt="" className="w-full h-full object-cover" /> : <Tv size={20} className="text-slate-500" />}
-                      </div>
-                      <div className="truncate">
-                        <div className="font-bold text-white truncate">{channel.name}</div>
-                        <div className="text-xs text-slate-500 font-mono truncate mt-0.5">{channel.url}</div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setChannels(prev => prev.filter(c => c.id !== channel.id))}
-                      className="text-red-500 bg-red-500/10 p-2 rounded-lg hover:bg-red-500/20 transition-colors shrink-0 ml-2"
-                    >
-                      <X size={18} />
-                    </button>
+          <div className="lg:col-span-7">
+            {/* Your Channels Card */}
+            <div className="bg-[#111827] rounded-[48px] p-8 lg:p-12 shadow-2xl border border-slate-800/60 min-h-full">
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-blue-500/10 rounded-3xl flex items-center justify-center text-blue-500 shadow-inner">
+                    <List size={32} />
                   </div>
-                ))}
+                  <div>
+                    <h2 className="text-4xl font-black text-white leading-none">Library</h2>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest mt-2">{channels.length} Total Registers</p>
+                  </div>
+                </div>
               </div>
-            )}
+
+              {channels.length === 0 ? (
+                <div className="text-center py-24 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-[40px] bg-slate-900/20">
+                  <div className="w-32 h-32 bg-slate-800/40 rounded-full flex items-center justify-center mb-8">
+                     <Tv size={64} className="text-slate-600 animate-pulse" />
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-3">Manifest Empty</h3>
+                  <p className="text-slate-500 text-lg max-w-sm mx-auto font-medium">
+                    No custom streams have been registered in your current session.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {channels.map(channel => (
+                    <div key={channel.id} className="group relative bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex items-center justify-between transition-all hover:shadow-2xl hover:translate-y-[-4px]">
+                      <div className="flex items-center gap-5 truncate">
+                        <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-700 group-hover:border-blue-500/50 transition-colors">
+                          {channel.logo ? <img src={channel.logo} alt="" className="w-full h-full object-cover" /> : <Tv size={28} className="text-slate-600" />}
+                        </div>
+                        <div className="truncate pr-4">
+                          <div className="font-black text-white text-lg truncate group-hover:text-blue-400 transition-colors">{channel.name}</div>
+                          <div className="text-xs text-slate-500 font-mono truncate mt-1 bg-slate-950/50 px-2 py-1 rounded inline-block">{channel.url}</div>
+                          <div className="mt-2">
+                             <span className={`text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded ${channel.drmType !== 'No DRM' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' : 'bg-slate-700/30 text-slate-500'}`}>
+                               {channel.drmType}
+                             </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setChannels(prev => prev.filter(c => c.id !== channel.id))}
+                        className="opacity-0 group-hover:opacity-100 absolute -top-3 -right-3 bg-red-500 text-white p-2.5 rounded-full hover:bg-red-600 transition-all shadow-xl active:scale-90"
+                      >
+                        <X size={18} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </main>
       </div>
@@ -687,172 +746,180 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden">
       {/* Header */}
-      <header className="flex justify-center items-center py-6 px-4 relative max-w-md mx-auto">
-        <div className="text-center">
+      <header className="flex justify-between items-center py-6 px-4 relative max-w-7xl mx-auto w-full">
+        <div className="text-center lg:text-left">
           <h1 className="text-3xl font-bold text-indigo-400 tracking-tight">SECRET SOCIETY</h1>
           <p className="text-slate-400 text-sm mt-1">Your Personal Game File</p>
         </div>
         <button 
           onClick={() => setIsMenuOpen(true)}
-          className="absolute right-4 p-2 border border-slate-700 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors"
+          className="p-2 border border-slate-700 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors"
         >
           <Menu size={24} className="text-slate-300" />
         </button>
       </header>
 
       {/* Main Content Area */}
-      <main className="px-4 pb-12 max-w-md mx-auto relative z-0">
-        {!hasToken ? (
-          /* Generate Token State */
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 mt-4 shadow-xl">
-            <h2 className="text-xl font-semibold text-white mb-2">Create Your Game File</h2>
-            <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-              Generate your Personal Game File URL & Start Playing in Virtual World.
-            </p>
-            <button 
-              onClick={handleGenerate}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200"
-            >
-              <AlertTriangle size={18} />
-              Generate Game Token
-            </button>
-          </div>
-        ) : (
-          /* Dashboard State */
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 mt-4 shadow-xl space-y-6">
-            <h2 className="text-xl font-semibold text-white">Your Game File Dashboard</h2>
-            
-            <div className="font-mono text-xs text-slate-400 break-all bg-slate-900/50 p-3 rounded-lg border border-slate-800/50">
-              {generatedUrl}
-            </div>
-
-            <button 
-              onClick={handleCopy}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200"
-            >
-              <Copy size={18} />
-              Copy
-            </button>
-
-            <div className="bg-yellow-500/10 border border-yellow-600/30 rounded-xl p-4">
-              <p className="text-yellow-500 text-sm leading-relaxed">
-                <span className="font-semibold">Warning:</span> Only 4 devices are allowed. Sharing your file URL publicly will result in your IP being blocked.
-              </p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 flex flex-col items-center justify-center text-center`}>
-                <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2">Status</span>
-                {isBlocked ? (
-                  <span className="text-red-500 font-bold text-lg drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">IP BLOCKED</span>
-                ) : isExpired ? (
-                  <span className="text-red-500 font-bold text-lg drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">EXPIRED</span>
-                ) : (
-                  <span className="text-emerald-400 font-bold text-lg drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">ACTIVE</span>
-                )}
-              </div>
-              <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
-                {hasToken && !isBlocked && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-60">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping absolute"></div>
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full relative"></div>
-                  </div>
-                )}
-                <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 flex items-center gap-1">
-                  Active Devices
-                </span>
-                <span className={`${activeDevices > 4 ? 'text-red-500' : 'text-emerald-400'} font-bold text-lg drop-shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-300`}>{activeDevices} / 4</span>
-              </div>
-              <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2">Remaining</span>
-                <div className="flex flex-col items-center leading-tight">
-                  <span className="text-white font-semibold text-base sm:text-lg">{remainingDays}d</span>
-                  <span className="text-white font-mono text-sm sm:text-base">{remainingTimeStr}</span>
-                </div>
-              </div>
-              <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 pb-1">Expiry Date</span>
-                <div className="flex flex-col items-center leading-tight gap-1">
-                  <span className="text-white font-semibold text-sm sm:text-base">{expiryFormatted.date}</span>
-                  <span className="text-white font-semibold text-sm sm:text-base">{expiryFormatted.time}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <button 
-                onClick={startVplinkVerification}
-                disabled={isVerifying}
-                className={`w-full ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200`}
-              >
-                {isVerifying && <RefreshCw size={18} className="animate-spin" />}
-                Extend Validity
-              </button>
-              <button 
-                onClick={() => setIsManageModalOpen(true)}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-medium py-3 rounded-xl transition-colors duration-200"
-              >
-                Manage Token
-              </button>
-
-              {/* Dev Simulation Control */}
-              {!isBlocked && (
+      <main className="px-4 pb-12 max-w-7xl mx-auto relative z-0">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+          <div className="lg:col-span-7 xl:col-span-8">
+            {!hasToken ? (
+              /* Generate Token State */
+              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-10 mt-4 shadow-xl">
+                <h2 className="text-2xl font-bold text-white mb-3">Create Your Game File</h2>
+                <p className="text-slate-400 text-lg mb-8 leading-relaxed">
+                  Generate your Personal Game File URL & Start Playing in Virtual World.
+                </p>
                 <button 
-                  onClick={() => setActiveIps(prev => [...prev, { id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }])}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs py-2 rounded-xl transition-colors duration-200 mt-4 border border-slate-700"
+                  onClick={handleGenerate}
+                  className="w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors duration-200 text-lg"
                 >
-                  [Dev] Simulate Token Use (Device++)
+                  <AlertTriangle size={20} />
+                  Generate Game Token
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Dashboard State */
+              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-4 shadow-xl space-y-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-white">Your Game File Dashboard</h2>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleCopy}
+                      className="flex-1 md:flex-none px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200"
+                    >
+                      <Copy size={18} />
+                      Copy URL
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all">
+                  {generatedUrl}
+                </div>
+
+                <div className="bg-yellow-500/10 border border-yellow-600/30 rounded-xl p-5">
+                  <p className="text-yellow-500 text-sm md:text-base leading-relaxed flex gap-3">
+                    <AlertTriangle size={24} className="shrink-0" />
+                    <span><span className="font-bold">Warning:</span> Only 4 devices are allowed. Sharing your file URL publicly will result in your IP being blocked.</span>
+                  </p>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-5 flex flex-col items-center justify-center text-center`}>
+                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Status</span>
+                    {isBlocked ? (
+                      <span className="text-red-500 font-bold text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">IP BLOCKED</span>
+                    ) : isExpired ? (
+                      <span className="text-red-500 font-bold text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">EXPIRED</span>
+                    ) : (
+                      <span className="text-emerald-400 font-bold text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">ACTIVE</span>
+                    )}
+                  </div>
+                  <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
+                    {hasToken && !isBlocked && (
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-60">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping absolute"></div>
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full relative"></div>
+                      </div>
+                    )}
+                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Active Devices</span>
+                    <span className={`${activeDevices > 4 ? 'text-red-500' : 'text-emerald-400'} font-bold text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-300`}>{activeDevices} / 4</span>
+                  </div>
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Remaining</span>
+                    <div className="flex flex-col items-center leading-tight">
+                      <span className="text-white font-semibold text-lg">{remainingDays}d</span>
+                      <span className="text-white font-mono text-base">{remainingTimeStr}</span>
+                    </div>
+                  </div>
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Expiry Date</span>
+                    <div className="flex flex-col items-center leading-tight gap-1">
+                      <span className="text-white font-semibold text-base">{expiryFormatted.date}</span>
+                      <span className="text-white font-semibold text-base">{expiryFormatted.time}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <button 
+                    onClick={startVplinkVerification}
+                    disabled={isVerifying}
+                    className={`flex-1 ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-lg`}
+                  >
+                    {isVerifying ? <RefreshCw size={20} className="animate-spin" /> : <RefreshCw size={20} />}
+                    Extend Validity
+                  </button>
+                  <button 
+                    onClick={() => setIsManageModalOpen(true)}
+                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors duration-200 text-lg"
+                  >
+                    Manage Token
+                  </button>
+                </div>
+
+                {/* Dev Simulation Control */}
+                {!isBlocked && (
+                  <button 
+                    onClick={() => setActiveIps(prev => [...prev, { id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }])}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs py-2.5 rounded-xl transition-colors duration-200 border border-slate-700"
+                  >
+                    [Dev] Simulate Token Use (Device++)
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        )}
 
-        {hasToken && (
-          <>
-            {/* Recommended Players */}
-            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 mt-6 shadow-xl">
-               <h2 className="text-[22px] font-bold text-white mb-6">Recommended Players</h2>
-               <div className="space-y-4">
-                  <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">NS Player</button>
-                  <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">OTT Navigator</button>
-                  <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">TiviMate</button>
-               </div>
-               <div className="mt-6 bg-[#1e293b]/40 rounded-xl p-4 border-l-4 border-l-slate-600">
-                 <p className="text-slate-400 text-sm leading-relaxed">
-                   <span className="font-bold text-slate-300">Note:</span> We cannot share direct application links due to copyright policies. These apps are freely available on the Play Store so just search it by the name.
-                 </p>
-               </div>
-            </div>
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+            {hasToken && (
+              <>
+                {/* Recommended Players */}
+                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-6 lg:mt-4 shadow-xl">
+                   <h2 className="text-2xl font-bold text-white mb-6">Recommended Players</h2>
+                   <div className="grid grid-cols-1 gap-3">
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">NS Player</button>
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">OTT Navigator</button>
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">TiviMate</button>
+                   </div>
+                   <div className="mt-6 bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600">
+                     <p className="text-slate-400 text-sm leading-relaxed">
+                       <span className="font-bold text-slate-300">Note:</span> We cannot share direct application links due to copyright policies. These apps are freely available on the Play Store.
+                     </p>
+                   </div>
+                </div>
 
-            {/* Token Verification */}
-            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 mt-6 shadow-xl mb-4">
-               <h2 className="text-[22px] font-bold text-white mb-6">Token Verification</h2>
-               <div className="bg-[#161f30] rounded-2xl p-5 border border-slate-800/80 shadow-inner">
-                  <div className="flex items-center gap-3 text-white font-bold mb-6 text-lg">
-                     <Shield size={20} className="text-slate-300" />
-                     Verify Your Token
-                  </div>
-                  <div className="space-y-5">
-                     <div>
-                       <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 block">USERNAME</label>
-                       <input type="text" placeholder="Enter your username (Telegram, Discord)" className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium" />
-                     </div>
-                     <button className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-lg">
-                        <CheckCircle2 size={20} />
-                        Verify Username
-                     </button>
-                     <div className="bg-[#1e293b]/40 rounded-xl p-4 border-l-4 border-l-slate-600 mt-2">
-                       <p className="text-slate-400 text-sm leading-relaxed">
-                         <span className="font-bold text-slate-300">Note:</span> If you verify your token, it will help you recover your token details if you lose access or forget your token.
-                       </p>
-                     </div>
-                  </div>
-               </div>
-            </div>
-          </>
-        )}
+                {/* Token Verification */}
+                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-6 shadow-xl mb-4">
+                   <h2 className="text-2xl font-bold text-white mb-6">Token Verification</h2>
+                   <div className="bg-[#161f30] rounded-2xl p-6 border border-slate-800/80 shadow-inner">
+                      <div className="flex items-center gap-3 text-white font-bold mb-6 text-lg">
+                         <Shield size={22} className="text-blue-400" />
+                         Verify Your Token
+                      </div>
+                      <div className="space-y-6">
+                         <div>
+                           <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2.5 block">USERNAME</label>
+                           <input type="text" placeholder="Telegram or Discord username" className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium" />
+                         </div>
+                         <button className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-lg">
+                            <CheckCircle2 size={22} />
+                            Verify Username
+                         </button>
+                         <div className="bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600 mt-2">
+                           <p className="text-slate-400 text-sm leading-relaxed">
+                             <span className="font-bold text-slate-300">Tip:</span> Verification helps you recover your details if you lose access.
+                           </p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Sidebar Overlay & Drawer */}
