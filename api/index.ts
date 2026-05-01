@@ -299,9 +299,6 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         const totalChannels = channels.length;
         
         let m3u = ['#EXTM3U'];
-        m3u.push(`# Total Channels => ${totalChannels}`);
-        m3u.push('# Script => @TheCursedCelestiaI');
-        m3u.push('');
 
         channels.forEach((ch: any) => {
              if (requestedGenres && !requestedGenres.includes(ch.group)) {
@@ -317,6 +314,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         });
         
         res.setHeader('Content-Type', 'application/x-mpegURL');
+        res.setHeader('Content-Disposition', 'attachment; filename="playlist.m3u"');
         res.send(m3u.join('\r\n'));
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
