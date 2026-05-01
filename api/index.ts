@@ -314,10 +314,44 @@ function getHeaders(config: any, token = '') {
     return headers;
 }
 
+async function fetchStalker(url: string, options: any) {
+    try {
+        console.log("Fetching DIRECT:", url);
+        const response = await fetch(url, options);
+        console.log("Direct status:", response.status);
+        if (response.ok) return response;
+        if (response.status === 403 || response.status === 401) {
+            throw new Error(`Cloudflare or Auth Error: ${response.status}`);
+        }
+        return response;
+    } catch (e) {
+        try {
+            const proxy1 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            console.log("Fetching PROXY1:", proxy1);
+            const response1 = await fetch(proxy1, options);
+            console.log("PROXY1 status:", response1.status);
+            if (response1.ok) return response1;
+        } catch (e1) {
+            console.error("PROXY1 error", e1);
+        }
+        
+        try {
+            const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            console.log("Fetching PROXY2:", proxy2);
+            const response2 = await fetch(proxy2, options);
+            console.log("PROXY2 status:", response2.status);
+            return response2;
+        } catch (e2) {
+            console.error("PROXY2 error", e2);
+            throw e2;
+        }
+    }
+}
+
 async function getToken(config: any) {
     const url = `http://${config.host}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml`;
     try {
-        const response = await fetch(url, { headers: getHeaders(config) });
+        const response = await fetchStalker(url, { headers: getHeaders(config) });
         if (!response.ok) return '';
         const text = await response.text();
         const data = JSON.parse(text);
@@ -343,7 +377,7 @@ async function auth(config: any, token: string) {
         + `&prehash=&JsHttpRequest=1-xml`;
 
     try {
-        const response = await fetch(url, { headers: getHeaders(config, token) });
+        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
         if (!response.ok) return [];
         const text = await response.text();
         const data = JSON.parse(text);
@@ -356,7 +390,7 @@ async function auth(config: any, token: string) {
 async function handShake(config: any, token: string) {
     const url = `http://${config.host}/stalker_portal/server/load.php?type=stb&action=handshake&token=${token}&JsHttpRequest=1-xml`;
     try {
-        const response = await fetch(url, { headers: getHeaders(config) });
+        const response = await fetchStalker(url, { headers: getHeaders(config) });
         if (!response.ok) return '';
         const text = await response.text();
         const data = JSON.parse(text);
@@ -369,7 +403,7 @@ async function handShake(config: any, token: string) {
 async function getAccountInfo(config: any, token: string) {
     const url = `http://${config.host}/stalker_portal/server/load.php?type=account_info&action=get_main_info&JsHttpRequest=1-xml`;
     try {
-        const response = await fetch(url, { headers: getHeaders(config, token) });
+        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
         if (!response.ok) return [];
         const text = await response.text();
         const data = JSON.parse(text);
@@ -382,7 +416,7 @@ async function getAccountInfo(config: any, token: string) {
 async function getGenres(config: any, token: string) {
     const url = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml`;
     try {
-        const response = await fetch(url, { headers: getHeaders(config, token) });
+        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
         if (!response.ok) return [];
         const text = await response.text();
         const data = JSON.parse(text);
@@ -395,7 +429,7 @@ async function getGenres(config: any, token: string) {
 async function getStreamURL(config: any, id: string, token: string) {
     const url = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/${id}&JsHttpRequest=1-xml`;
     try {
-        const response = await fetch(url, { headers: getHeaders(config, token) });
+        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
         if (!response.ok) return '';
         const text = await response.text();
         const data = JSON.parse(text);
@@ -495,7 +529,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
         let channelsData;
         try {
-            const response = await fetch(channelsUrl, { headers: getHeaders(config, token) });
+            const response = await fetchStalker(channelsUrl, { headers: getHeaders(config, token) });
             if (!response.ok) {
                 res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
                 return res.status(200).send(generateErrorM3U(`Failed to fetch channels from stalker portal: ${response.status}`));
@@ -561,7 +595,7 @@ app.get('/api/metadata', async (req, res) => {
         const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
         let channelsData;
         try {
-            const response = await fetch(channelsUrl, { headers: getHeaders(config, token) });
+            const response = await fetchStalker(channelsUrl, { headers: getHeaders(config, token) });
             if (!response.ok) {
                 return res.status(500).json({ error: `Failed to fetch channels: ${response.status}` });
             }
