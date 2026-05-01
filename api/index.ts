@@ -265,6 +265,8 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const scheme = req.get('x-forwarded-proto') || req.protocol;
     const origin = `${scheme}://${req.get('host')}`;
 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     if (providedToken === 'src' || providedToken === 'lib' || providedToken === 'node_modules' || providedToken === 'assets' || providedToken === 'api') {
       return res.status(404).send('Not Found');
     }
@@ -274,7 +276,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
 
     const generateErrorM3U = (message: string) => {
         const cleanMessage = message.replace(/"/g, "'").replace(/\n/g, ' ');
-        return `#EXTM3U\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${cleanMessage}" tvg-logo="" group-title="Error",${cleanMessage}\nhttps://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8\n`;
+        return `#EXTM3U\r\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${cleanMessage}" tvg-logo="" group-title="Error",${cleanMessage}\r\nhttps://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8\r\n`;
     };
 
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
@@ -305,6 +307,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         let m3u = ['#EXTM3U'];
         m3u.push(`# Total Channels => ${totalChannels}`);
         m3u.push('# Script => @TheCursedCelestiaI');
+        m3u.push('');
 
         channels.forEach((ch: any) => {
              if (requestedGenres && !requestedGenres.includes(ch.group)) {
@@ -321,7 +324,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         res.setHeader('Content-Disposition', 'attachment; filename="playlist.m3u"');
-        res.send(m3u.join('\n'));
+        res.send(m3u.join('\r\n'));
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
     }
