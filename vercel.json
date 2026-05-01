@@ -2,19 +2,19 @@
     "rewrites": [
       {
         "source": "/api/(.*)",
-        "destination": "/api"
+        "destination": "/api/index.js"
       },
       {
         "source": "/:token/playlist.m3u",
-        "destination": "/api"
+        "destination": "/api/index.js"
       },
       {
         "source": "/:token/playlist.m3u8",
-        "destination": "/api"
+        "destination": "/api/index.js"
       },
       {
         "source": "/:token/:id.m3u8",
-        "destination": "/api"
+        "destination": "/api/index.js"
       },
       {
         "source": "/(.*)",

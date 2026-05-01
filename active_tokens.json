@@ -1,5 +1,14 @@
 {
-  "test13": 1777634335378,
-  "r1L5k1PE": 1777633917896,
-  "test14": 1777634512014
+  "mytoken": {
+    "expiryTime": 1777638900487,
+    "username": "",
+    "blocked": false,
+    "devices": {
+      "33213c947c79c61fb88c44104f4e32ee": {
+        "ip": "127.0.0.1",
+        "userAgent": "node",
+        "lastSeen": 1777637908370
+      }
+    }
+  }
 }

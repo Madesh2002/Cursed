@@ -90,13 +90,13 @@ export default function App() {
         setIsFetchingMetadata(true);
         try {
           const res = await fetch('/api/metadata');
-          if (res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (res.ok && contentType && contentType.includes("application/json")) {
             const data = await res.json();
             setGenres(data.genres || []);
             setTotalChannels(data.totalChannels || 0);
           } else {
-            const errData = await res.json();
-            console.error("Error fetching metadata:", errData);
+            console.error("Error fetching metadata:", res.statusText);
             setGenres([{ 
                id: 'error', 
                title: 'Error: Cannot fetch from server', 
@@ -150,7 +150,8 @@ export default function App() {
     const fetchTokenInfo = async () => {
       try {
          const res = await fetch(`/api/tokens/${token}`);
-         if (res.ok) {
+         const contentType = res.headers.get("content-type");
+         if (res.ok && contentType && contentType.includes("application/json")) {
             const data = await res.json();
             if (data.devices) {
                // devices come as array: {id, ip, userAgent, lastSeen}
@@ -164,6 +165,8 @@ export default function App() {
             if (data.blocked !== undefined) {
                setIsBlocked(data.blocked);
             }
+         } else if (!res.ok && res.status !== 404) {
+            console.error(`Error fetching token info: ${res.statusText}`);
          }
       } catch(e) {
          console.error("Error fetching token info", e);

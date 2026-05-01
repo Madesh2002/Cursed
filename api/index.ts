@@ -431,7 +431,8 @@ async function convertJsonToM3U(config: any, channels: any[], profile: any, acco
 
     if (channels.length) {
         channels.forEach((channel) => {
-            let real_cmd = channel.id;
+            let cmd = channel.cmd || '';
+            let real_cmd = cmd.replace('ffrt http://localhost/ch/', '');
             if (!real_cmd) {
                 real_cmd = 'unknown';
             }
