@@ -925,22 +925,23 @@ export default function App() {
               </div>
             ) : (
               /* Dashboard State */
-              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-4 shadow-xl space-y-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <h2 className="text-2xl font-bold text-white">Your Game File Dashboard</h2>
-                  <div className="flex gap-2">
+              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-4 shadow-xl space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6 text-center md:text-left">Your Game File Dashboard</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-center md:text-left">
+                      {generatedUrl}
+                    </div>
+                    
                     <button 
                       onClick={handleCopy}
-                      className="flex-1 md:flex-none px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200"
+                      className="w-full px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-lg shadow-lg shadow-blue-500/20"
                     >
-                      <Copy size={18} />
+                      <Copy size={20} />
                       Copy URL
                     </button>
                   </div>
-                </div>
-                
-                <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all">
-                  {generatedUrl}
                 </div>
 
                 <div className="bg-yellow-500/10 border border-yellow-600/30 rounded-xl p-5">
