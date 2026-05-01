@@ -410,8 +410,12 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
             return res.status(404).send("Channel not found");
         }
         
-        res.setHeader('Content-Type', 'application/x-mpegURL');
-        res.redirect(302, targetUrl);
+        res.writeHead(302, {
+            'Location': targetUrl,
+            'Content-Type': 'application/x-mpegURL',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end();
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
     }
