@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import cors from 'cors';
 
 const configPath = path.join(process.cwd(), 'playlist-config.json');
 const tmpConfigPath = '/tmp/playlist-config.json';
@@ -36,6 +37,7 @@ function savePlaylistConfigSync(config: any) {
 }
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 let memoryTokens: any = null;
@@ -137,14 +139,6 @@ function checkRecovery(token: string, username: string): boolean {
 }
 
 function isAllowedUserAgent(ua: string | undefined): boolean {
-    if (!ua) return true; 
-    const lowerUA = ua.toLowerCase();
-    if (lowerUA.includes('ott') || lowerUA.includes('tivimate') || lowerUA.includes('ns player') || lowerUA.includes('iptv') || lowerUA.includes('exoplayer')) {
-        return true;
-    }
-    if (lowerUA.includes('mozilla') && (lowerUA.includes('chrome') || lowerUA.includes('safari') || lowerUA.includes('edge') || lowerUA.includes('opera'))) {
-        return false;
-    }
     return true; 
 }
 
@@ -280,19 +274,19 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     };
 
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Content-Type', 'application/x-mpegURL');
         return res.status(200).send(generateErrorM3U('Error: Browser detected or invalid player. Please use a dedicated IPTV player.'));
     }
 
     if (req.params.token && req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Content-Type', 'application/x-mpegURL');
         return res.status(200).send(generateErrorM3U('Error: Token is expired, invalid, or device limit reached.'));
     }
 
     try {
         const channelsPath = path.join(process.cwd(), 'channels.json');
         if (!fs.existsSync(channelsPath)) {
-            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Content-Type', 'application/x-mpegURL');
             return res.status(200).send(generateErrorM3U('channels.json not found'));
         }
         
@@ -322,8 +316,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
              m3u.push(`${origin}${targetPath}`);
         });
         
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.setHeader('Content-Disposition', 'attachment; filename="playlist.m3u"');
+        res.setHeader('Content-Type', 'application/x-mpegURL');
         res.send(m3u.join('\r\n'));
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
@@ -410,7 +403,7 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
             return res.status(404).send("Channel not found");
         }
         
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Content-Type', 'application/x-mpegURL');
         res.redirect(302, targetUrl);
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
