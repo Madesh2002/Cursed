@@ -4,7 +4,22 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2 } from 'lucide-react';
+import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDdowv0IXhJikRNoy3riJqjcz1rX1vmc5Y",
+    authDomain: "xotoken-a0d60.firebaseapp.com",
+    projectId: "xotoken-a0d60",
+    storageBucket: "xotoken-a0d60.firebasestorage.app",
+    messagingSenderId: "332885529359",
+    appId: "1:332885529359:web:fe51ca50a1d452e91a247a",
+    measurementId: "G-V0NYB4SG6M"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 export default function App() {
   const [hasToken, setHasToken] = useState(false);
@@ -21,7 +36,7 @@ export default function App() {
   const [activeIps, setActiveIps] = useState<{ id: string, ip: string, timestamp: number }[]>([]);
   const activeDevices = activeIps.length;
   const [isBlocked, setIsBlocked] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'ip-manager' | 'add-items' | 'contact-us' | 'customise'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'ip-manager' | 'add-items' | 'contact-us' | 'customise' | 'admin'>('dashboard');
   const [extendDate, setExtendDate] = useState('');
   const [extendTime, setExtendTime] = useState('');
 
@@ -37,6 +52,20 @@ export default function App() {
 
   // Customise State
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  
+  // Admin State
+  const [stalkerConfig, setStalkerConfig] = useState<any>({
+    host: '',
+    mac_address: '',
+    serial_number: '',
+    device_id: '',
+    device_id_2: '',
+    stb_type: '',
+    api_signature: ''
+  });
+  const [isAdminSaving, setIsAdminSaving] = useState(false);
+  const [adminStatus, setAdminStatus] = useState({ type: '', message: '' });
+
   const genres = [
     { id: 'business-news', title: 'Business News', count: 15, icon: <Activity size={32} /> },
     { id: 'entertainment', title: 'Entertainment', count: 197, icon: <PlaySquare size={32} /> },
@@ -45,6 +74,23 @@ export default function App() {
     { id: 'sports', title: 'Sports', count: 89, icon: <Activity size={32} /> },
     { id: 'kids', title: 'Kids', count: 42, icon: <PlaySquare size={32} /> },
   ];
+
+  useEffect(() => {
+    if (currentView === 'admin') {
+      const fetchConfig = async () => {
+        try {
+          const docRef = doc(db, 'settings', 'stalkerConfig');
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setStalkerConfig(docSnap.data());
+          }
+        } catch (error) {
+          console.error("Error fetching config:", error);
+        }
+      };
+      fetchConfig();
+    }
+  }, [currentView]);
 
   useEffect(() => {
     if (activeDevices > 4) {
@@ -89,6 +135,23 @@ export default function App() {
     setHasToken(true);
     // 7 days from now
     setExpiryTime(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  };
+
+  const handleSaveConfig = async () => {
+    setIsAdminSaving(true);
+    setAdminStatus({ type: '', message: '' });
+    try {
+      const dataToSave = {
+        ...stalkerConfig,
+        last_sync: new Date().toLocaleTimeString()
+      };
+      await setDoc(doc(db, 'settings', 'stalkerConfig'), dataToSave);
+      setAdminStatus({ type: 'success', message: 'Server updated instantly!' });
+    } catch (error: any) {
+      console.error(error);
+      setAdminStatus({ type: 'error', message: `Error: ${error.message}` });
+    }
+    setIsAdminSaving(false);
   };
 
   useEffect(() => {
@@ -542,6 +605,88 @@ export default function App() {
     );
   }
 
+  if (currentView === 'admin') {
+    return (
+      <div className="bg-slate-950 text-slate-200 min-h-screen flex flex-col p-6">
+        <header className="flex justify-between items-center py-6 px-4 relative max-w-7xl mx-auto w-full">
+          <button 
+            onClick={() => setCurrentView('dashboard')}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowDown className="rotate-90" size={20} /> Back to Dashboard
+          </button>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8">
+              <div className="flex items-center justify-between mb-8">
+                  <h1 className="text-xl font-bold text-white">Server Configuration</h1>
+                  <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+              </div>
+              
+              <div className="space-y-5">
+                  <div>
+                      <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Host Address</label>
+                      <input 
+                        type="text" 
+                        value={stalkerConfig?.host || ''}
+                        onChange={(e) => setStalkerConfig({...stalkerConfig, host: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" required 
+                      />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                          <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">MAC Address</label>
+                          <input 
+                            type="text" 
+                            value={stalkerConfig?.mac_address || ''}
+                            onChange={(e) => setStalkerConfig({...stalkerConfig, mac_address: e.target.value})}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Device Type</label>
+                          <input 
+                            type="text" 
+                            value={stalkerConfig?.stb_type || ''}
+                            onChange={(e) => setStalkerConfig({...stalkerConfig, stb_type: e.target.value})}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
+                          />
+                      </div>
+                  </div>
+
+                  <div>
+                      <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Serial Number</label>
+                      <input 
+                        type="text" 
+                        value={stalkerConfig?.serial_number || ''}
+                        onChange={(e) => setStalkerConfig({...stalkerConfig, serial_number: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
+                      />
+                  </div>
+
+                  <button 
+                    onClick={handleSaveConfig}
+                    disabled={isAdminSaving}
+                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                      {isAdminSaving ? <RefreshCw className="animate-spin" size={20} /> : null}
+                      Push Updates to Server
+                  </button>
+              </div>
+
+              {adminStatus.message && (
+                <div className={`mt-6 text-center text-sm font-medium ${adminStatus.type === 'success' ? 'text-emerald-400' : 'text-red-400'} block`}>
+                  {adminStatus.type === 'success' ? '✨ ' : '❌ '}{adminStatus.message}
+                </div>
+              )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (currentView === 'add-items') {
     return (
       <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
@@ -943,6 +1088,7 @@ export default function App() {
                   'Customise Your File',
                   'IP Manager',
                   'Recover Token',
+                  'Settings',
                   'About Us',
                   'Contact Us'
                 ].map((item) => (
@@ -958,6 +1104,8 @@ export default function App() {
                           setCurrentView('contact-us');
                         } else if (item === 'Customise Your File') {
                           setCurrentView('customise');
+                        } else if (item === 'Settings') {
+                          setCurrentView('admin');
                         } else if (item === 'Recover Token') {
                           setIsRecoverModalOpen(true);
                         }
