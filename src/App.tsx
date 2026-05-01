@@ -68,14 +68,8 @@ export default function App() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   
   // Admin State
-  const [stalkerConfig, setStalkerConfig] = useState<any>({
-    host: '',
-    mac_address: '',
-    serial_number: '',
-    device_id: '',
-    device_id_2: '',
-    stb_type: '',
-    api_signature: ''
+  const [config, setConfig] = useState<any>({
+    playlist_url: ''
   });
   const [isAdminSaving, setIsAdminSaving] = useState(false);
   const [adminStatus, setAdminStatus] = useState({ type: '', message: '' });
@@ -124,7 +118,7 @@ export default function App() {
           const res = await fetch('/api/settings/config');
           if (res.ok) {
             const data = await res.json();
-            setStalkerConfig(data);
+            setConfig(data);
           }
         } catch (error) {
           console.error("Error fetching config:", error);
@@ -213,7 +207,7 @@ export default function App() {
     setAdminStatus({ type: '', message: '' });
     try {
       const dataToSave = {
-        ...stalkerConfig,
+        ...config,
         last_sync: new Date().toLocaleTimeString()
       };
       
@@ -750,43 +744,13 @@ export default function App() {
               
               <div className="space-y-5">
                   <div>
-                      <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Host Address</label>
+                      <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Playlist URL (M3U)</label>
                       <input 
                         type="text" 
-                        value={stalkerConfig?.host || ''}
-                        onChange={(e) => setStalkerConfig({...stalkerConfig, host: e.target.value})}
+                        value={config?.playlist_url || ''}
+                        onChange={(e) => setConfig({...config, playlist_url: e.target.value})}
+                        placeholder="https://example.com/playlist.m3u"
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" required 
-                      />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                      <div>
-                          <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">MAC Address</label>
-                          <input 
-                            type="text" 
-                            value={stalkerConfig?.mac_address || ''}
-                            onChange={(e) => setStalkerConfig({...stalkerConfig, mac_address: e.target.value})}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Device Type</label>
-                          <input 
-                            type="text" 
-                            value={stalkerConfig?.stb_type || ''}
-                            onChange={(e) => setStalkerConfig({...stalkerConfig, stb_type: e.target.value})}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
-                          />
-                      </div>
-                  </div>
-
-                  <div>
-                      <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Serial Number</label>
-                      <input 
-                        type="text" 
-                        value={stalkerConfig?.serial_number || ''}
-                        onChange={(e) => setStalkerConfig({...stalkerConfig, serial_number: e.target.value})}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 outline-none focus:border-blue-500 transition" 
                       />
                   </div>
 

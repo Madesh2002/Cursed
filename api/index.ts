@@ -3,23 +3,15 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-const configPath = path.join(process.cwd(), 'stalker-config.json');
-const tmpConfigPath = '/tmp/stalker-config.json';
+const configPath = path.join(process.cwd(), 'playlist-config.json');
+const tmpConfigPath = '/tmp/playlist-config.json';
 let memoryConfig: any = null;
 
 const defaultConfig = {
-    host: 'tv.saartv.cc',
-    mac_address: '00:1A:79:00:4D:84',
-    serial_number: '58E6A1E78FB02',
-    device_id: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
-    device_id_2: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
-    stb_type: 'MAG250',
-    api_signature: '263',
-    hw_version: '',
-    hw_version_2: ''
+    playlist_url: ''
 };
 
-function getStalkerConfigSync() {
+function getPlaylistConfigSync() {
     if (memoryConfig) return { ...memoryConfig };
     try {
         if (fs.existsSync(configPath)) {
@@ -36,7 +28,7 @@ function getStalkerConfigSync() {
     return { ...defaultConfig };
 }
 
-function saveStalkerConfigSync(config: any) {
+function savePlaylistConfigSync(config: any) {
     memoryConfig = config;
     try { fs.writeFileSync(configPath, JSON.stringify(config, null, 2)); } catch(e) {
         try { fs.writeFileSync(tmpConfigPath, JSON.stringify(config, null, 2)); } catch(e2) {}
@@ -75,49 +67,25 @@ function saveTokensToDisk(tokens: any) {
 function syncTokenStorage(token: string, expiryTime: number, username?: string) {
     try {
         let tokens: any = getTokensFromDisk();
-        
         const existingData = tokens[token] || {};
-        
-        // Preserve username if it exists and a new one isn't provided
         let currentUsername = existingData.username || '';
         if (username !== undefined) {
            currentUsername = username;
         }
-
         tokens[token] = { 
             expiryTime, 
             username: currentUsername,
             blocked: existingData.blocked || false,
             devices: existingData.devices || {}
         };
-        
-        // Cleanup expired tokens
         const now = Date.now();
         for (const t in tokens) {
-            // backward compatibility check
             const expiry = typeof tokens[t] === 'number' ? tokens[t] : tokens[t]?.expiryTime;
             if (expiry && expiry < now) delete tokens[t];
         }
         saveTokensToDisk(tokens);
     } catch (e) {
         console.error("Error setting token:", e);
-    }
-}
-
-function verifyToken(token: string): boolean {
-    if (!token) return false;
-    try {
-        const tokens = getTokensFromDisk();
-        const tokenData = tokens[token];
-        if (!tokenData) return false;
-        
-        const expiry = typeof tokenData === 'number' ? tokenData : tokenData.expiryTime;
-        if (!expiry) return false;
-        if (Date.now() > expiry) return false;
-        if (tokenData.blocked) return false;
-        return true;
-    } catch (e) {
-        return false;
     }
 }
 
@@ -136,35 +104,22 @@ function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
         
         const expiry = tokenData.expiryTime;
         if (!expiry || Date.now() > expiry) return false;
-        
         if (tokenData.blocked) return false;
-
         if (!tokenData.devices) tokenData.devices = {};
         
         const deviceId = crypto.createHash('md5').update(`${ip}-${ua}`).digest('hex');
-        
         if (!tokenData.devices[deviceId]) {
             const deviceCount = Object.keys(tokenData.devices).length;
             if (deviceCount >= 4) {
                tokenData.blocked = true;
                saveTokensToDisk(tokens);
-               console.log(`Token ${token} blocked due to >4 devices. IP: ${ip}`);
                return false;
             }
         }
-        
-        tokenData.devices[deviceId] = {
-           ip,
-           userAgent: ua,
-           lastSeen: Date.now()
-        };
-        
-        console.log(`[Token: ${token}] Accessed by Device: ${ip} | UA: ${ua}`);
+        tokenData.devices[deviceId] = { ip, userAgent: ua, lastSeen: Date.now() };
         saveTokensToDisk(tokens);
         return true;
-
     } catch (e) {
-        console.error("Device track error:", e);
         return false;
     }
 }
@@ -182,20 +137,14 @@ function checkRecovery(token: string, username: string): boolean {
 }
 
 function isAllowedUserAgent(ua: string | undefined): boolean {
-    if (!ua) return true; // Many IPTV players send empty headers
+    if (!ua) return true; 
     const lowerUA = ua.toLowerCase();
-    
-    // Explicitly allowed even if it contains "mozilla"
     if (lowerUA.includes('ott') || lowerUA.includes('tivimate') || lowerUA.includes('ns player') || lowerUA.includes('iptv') || lowerUA.includes('exoplayer')) {
         return true;
     }
-
-    // Block typical browsers
     if (lowerUA.includes('mozilla') && (lowerUA.includes('chrome') || lowerUA.includes('safari') || lowerUA.includes('edge') || lowerUA.includes('opera'))) {
         return false;
     }
-    
-    // Allow others
     return true; 
 }
 
@@ -222,11 +171,8 @@ app.get('/api/tokens/:token', (req, res) => {
     const { token } = req.params;
     try {
         const tokens = getTokensFromDisk();
-        if (Object.keys(tokens).length === 0) {
-            return res.json({ error: 'No tokens found' });
-        }
+        if (Object.keys(tokens).length === 0) return res.json({ error: 'No tokens found' });
         const tokenData = tokens[token];
-        
         if (tokenData) {
            const devices = tokenData.devices || {};
            const formattedDevices = Object.keys(devices).map(deviceId => ({
@@ -235,7 +181,6 @@ app.get('/api/tokens/:token', (req, res) => {
                userAgent: devices[deviceId].userAgent,
                lastSeen: devices[deviceId].lastSeen
            }));
-           
            res.json({
                expiryTime: tokenData.expiryTime,
                username: tokenData.username || '',
@@ -254,14 +199,10 @@ app.delete('/api/tokens/:token/devices/:deviceId', (req, res) => {
     const { token, deviceId } = req.params;
     try {
         const tokens = getTokensFromDisk();
-        if (Object.keys(tokens).length === 0) {
-            return res.status(404).json({ error: 'No tokens found' });
-        }
+        if (Object.keys(tokens).length === 0) return res.status(404).json({ error: 'No tokens found' });
         const tokenData = tokens[token];
-        
         if (tokenData && tokenData.devices && tokenData.devices[deviceId]) {
             delete tokenData.devices[deviceId];
-            // If device limit drops below 4, optionally unblock?
             if (Object.keys(tokenData.devices).length < 4) {
                 tokenData.blocked = false;
             }
@@ -276,222 +217,51 @@ app.delete('/api/tokens/:token/devices/:deviceId', (req, res) => {
 });
 
 app.get('/api/settings/config', (req, res) => {
-    res.json(getStalkerConfigSync());
+    res.json(getPlaylistConfigSync());
 });
 
 app.post('/api/settings/config', (req, res) => {
     try {
-        saveStalkerConfigSync(req.body);
+        savePlaylistConfigSync(req.body);
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
 });
 
-async function getStalkerConfig() {
-    return getStalkerConfigSync();
-}
+function parseM3U(m3uText: string) {
+    const lines = m3uText.split(/\r?\n/);
+    const channels = [];
+    const genresSet = new Set<string>();
+    let currentExtinf = "";
+    let currentGroup = "Other";
 
-async function hash(str: string) {
-    return crypto.createHash('md5').update(str).digest('hex');
-}
-
-async function generateHardwareVersions(config: any) {
-    config.hw_version = '1.7-BD-' + (await hash(config.mac_address)).substring(0, 2).toUpperCase();
-    config.hw_version_2 = await hash(config.serial_number.toLowerCase() + config.mac_address.toLowerCase());
-}
-
-function getHeaders(config: any, token = '') {
-    const headers: Record<string, string> = {
-        'Cookie': `mac=${config.mac_address}; stb_lang=en; timezone=GMT`,
-        'Referer': `http://${config.host}/stalker_portal/c/`,
-        'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
-        'X-User-Agent': `Model: ${config.stb_type}; Link: WiFi`
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-}
-
-async function fetchStalker(url: string, options: any) {
-    try {
-        console.log("Fetching DIRECT:", url);
-        const response = await fetch(url, options);
-        console.log("Direct status:", response.status);
-        if (response.ok) return response;
-        if (response.status === 403 || response.status === 401) {
-            throw new Error(`Cloudflare or Auth Error: ${response.status}`);
-        }
-        return response;
-    } catch (e) {
-        try {
-            const proxy1 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-            console.log("Fetching PROXY1:", proxy1);
-            const response1 = await fetch(proxy1, options);
-            console.log("PROXY1 status:", response1.status);
-            if (response1.ok) return response1;
-        } catch (e1) {
-            console.error("PROXY1 error", e1);
-        }
-        
-        try {
-            const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            console.log("Fetching PROXY2:", proxy2);
-            const response2 = await fetch(proxy2, options);
-            console.log("PROXY2 status:", response2.status);
-            return response2;
-        } catch (e2) {
-            console.error("PROXY2 error", e2);
-            throw e2;
-        }
-    }
-}
-
-async function getToken(config: any) {
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=stb&action=handshake&token=&JsHttpRequest=1-xml`;
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config) });
-        if (!response.ok) return '';
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js?.token || '';
-    } catch (e) {
-        return '';
-    }
-}
-
-async function auth(config: any, token: string) {
-    const metrics = { mac: config.mac_address, model: '', type: 'STB', uid: '', device: '', random: '' };
-    const metricsEncoded = encodeURIComponent(JSON.stringify(metrics));
-
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=stb&action=get_profile`
-        + `&hd=1&ver=ImageDescription:%200.2.18-r14-pub-250;`
-        + `%20PORTAL%20version:%205.5.0;%20API%20Version:%20328;`
-        + `&num_banks=2&sn=${config.serial_number}`
-        + `&stb_type=${config.stb_type}&client_type=STB&image_version=218&video_out=hdmi`
-        + `&device_id=${config.device_id}&device_id2=${config.device_id_2}`
-        + `&signature=&auth_second_step=1&hw_version=${config.hw_version}`
-        + `&not_valid_token=0&metrics=${metricsEncoded}`
-        + `&hw_version_2=${config.hw_version_2}&api_signature=${config.api_signature}`
-        + `&prehash=&JsHttpRequest=1-xml`;
-
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
-        if (!response.ok) return [];
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js || [];
-    } catch (e) {
-        return [];
-    }
-}
-
-async function handShake(config: any, token: string) {
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=stb&action=handshake&token=${token}&JsHttpRequest=1-xml`;
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config) });
-        if (!response.ok) return '';
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js?.token || '';
-    } catch (e) {
-        return '';
-    }
-}
-
-async function getAccountInfo(config: any, token: string) {
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=account_info&action=get_main_info&JsHttpRequest=1-xml`;
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
-        if (!response.ok) return [];
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js || [];
-    } catch (e) {
-        return [];
-    }
-}
-
-async function getGenres(config: any, token: string) {
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_genres&JsHttpRequest=1-xml`;
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
-        if (!response.ok) return [];
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js || [];
-    } catch (e) {
-        return [];
-    }
-}
-
-async function getStreamURL(config: any, id: string, token: string) {
-    const url = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=create_link&cmd=ffrt%20http://localhost/ch/${id}&JsHttpRequest=1-xml`;
-    try {
-        const response = await fetchStalker(url, { headers: getHeaders(config, token) });
-        if (!response.ok) return '';
-        const text = await response.text();
-        const data = JSON.parse(text);
-        return data.js?.cmd || '';
-    } catch (e) {
-        return '';
-    }
-}
-
-async function genToken(config: any) {
-    await generateHardwareVersions(config);
-    const token = await getToken(config);
-    if (!token) return { token: '', profile: [], account_info: [] };
-    
-    const profile = await auth(config, token);
-    const newToken = await handShake(config, token);
-    if (!newToken) return { token: '', profile, account_info: [] };
-    
-    const account_info = await getAccountInfo(config, newToken);
-    return { token: newToken, profile, account_info };
-}
-
-async function convertJsonToM3U(config: any, channels: any[], profile: any, account_info: any, origin: string, providedToken: string) {
-    let m3u = [
-        '#EXTM3U',
-        `# Total Channels => ${channels.length}`,
-        '# Script => @TheCursedCelestiaI',
-        ''
-    ];
-
-    m3u.push('#EXTINF:-1 tvg-name="Telegram: @xocietylive" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" group-title="𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" ,Telegram • @xocietylive');
-    m3u.push('https://xociety-intro.vercel.app/xociety.m3u8');
-
-    if (channels.length) {
-        channels.forEach((channel) => {
-            let cmd = channel.cmd || '';
-            let real_cmd = cmd.replace('ffrt http://localhost/ch/', '');
-            if (!real_cmd) {
-                real_cmd = 'unknown';
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('#EXTINF')) {
+            currentExtinf = line;
+            const groupMatch = line.match(/group-title="([^"]+)"/);
+            if (groupMatch) {
+                currentGroup = groupMatch[1];
+            } else {
+                currentGroup = "Other";
             }
-            let logo_url = '';
-            if (channel.logo) {
-                if (channel.logo.startsWith('http')) {
-                    logo_url = channel.logo;
-                } else {
-                    logo_url = `http://${config.host}/stalker_portal/misc/logos/320/${channel.logo}`;
-                }
-            }
-            m3u.push(`#EXTINF:-1 tvg-id="${channel.tvgid}" tvg-name="${channel.name}" tvg-logo="${logo_url}" group-title="${channel.title}",${channel.name}`);
-            
-            // Format URL with token
-            const channel_stream_url = `${origin}/${providedToken}/${real_cmd}.m3u8`;
-            m3u.push(channel_stream_url);
-        });
+            genresSet.add(currentGroup);
+        } else if (line !== '' && !line.startsWith('#')) {
+            channels.push({
+                extinf: currentExtinf,
+                url: line,
+                group: currentGroup
+            });
+            currentExtinf = "";
+            currentGroup = "Other";
+        }
     }
-
-    return m3u.join('\n');
+    return { channels, genres: Array.from(genresSet) };
 }
 
 const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const providedToken = req.params.token;
-    // req.get('host') inside Vercel gives the deployed domain.
     const scheme = req.get('x-forwarded-proto') || req.protocol;
     const origin = `${scheme}://${req.get('host')}`;
 
@@ -499,7 +269,6 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
       return res.status(404).send('Not Found');
     }
     
-    // Get device info
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
@@ -519,66 +288,40 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     }
 
     try {
-        const config = await getStalkerConfig();
-        const { token, profile, account_info } = await genToken(config);
-        if (!token) {
+        const channelsPath = path.join(process.cwd(), 'channels.json');
+        if (!fs.existsSync(channelsPath)) {
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-            return res.status(200).send(generateErrorM3U('Internal Server Error: Failed to generate token from stalker portal'));
+            return res.status(200).send(generateErrorM3U('channels.json not found'));
         }
-
-        const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
-        let channelsData;
-        try {
-            const response = await fetchStalker(channelsUrl, { headers: getHeaders(config, token) });
-            if (!response.ok) {
-                res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-                return res.status(200).send(generateErrorM3U(`Failed to fetch channels from stalker portal: ${response.status}`));
-            }
-            channelsData = JSON.parse(await response.text());
-        } catch (e: any) {
-            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-            return res.status(200).send(generateErrorM3U(`Error fetching channels: ${e.message}`));
-        }
-
-        const genres = await getGenres(config, token);
-
-        let channels: any[] = [];
-        let itemsToMap: any[] = [];
-        if (channelsData.js?.data && Array.isArray(channelsData.js.data)) {
-            itemsToMap = channelsData.js.data;
-        } else if (channelsData.js && Array.isArray(channelsData.js)) {
-            itemsToMap = channelsData.js;
-        }
-
-        channels = itemsToMap.map((item: any) => ({
-            name: item.name || 'Unknown',
-            cmd: item.cmd || '',
-            tvgid: item.xmltv_id || '',
-            id: item.id || '',
-            genre_id: item.tv_genre_id || '',
-            logo: item.logo || ''
-        }));
-
-        const groupTitleMap: Record<string, string> = {};
-        genres.forEach((group: any) => {
-            groupTitleMap[group.id] = group.title || 'Other';
-        });
-
-        channels = channels.map((channel: any) => ({
-            ...channel,
-            title: groupTitleMap[channel.genre_id] || 'Other'
-        }));
-
+        
+        const channelsRaw = fs.readFileSync(channelsPath, 'utf8');
+        const channels = JSON.parse(channelsRaw);
+        
         const requestedGenres = req.query.genres ? (req.query.genres as string).split(',') : null;
-        if (requestedGenres && requestedGenres.length > 0) {
-            channels = channels.filter((channel: any) => requestedGenres.includes(channel.genre_id));
-        }
+        
+        // Count total channels
+        const totalChannels = channels.length;
+        
+        let m3u = ['#EXTM3U'];
+        m3u.push(`# Total Channels => ${totalChannels}`);
+        m3u.push('# Script => @TheCursedCelestiaI\n');
 
-        const m3uContent = await convertJsonToM3U(config, channels, profile, account_info, origin, providedToken);
-
+        channels.forEach((ch: any) => {
+             if (requestedGenres && !requestedGenres.includes(ch.group)) {
+                 return;
+             }
+             if (ch.extinf) {
+                 m3u.push(ch.extinf);
+             } else {
+                 m3u.push(`#EXTINF:-1 group-title="${ch.group || 'Other'}",Channel`);
+             }
+             // For telegram channel (xociety) which is already in the list, just use the endpoint
+             m3u.push(`${origin}/${providedToken}/${ch.channel_id}.m3u8`);
+        });
+        
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         res.setHeader('Content-Disposition', 'attachment; filename="playlist.m3u"');
-        res.send(m3uContent);
+        res.send(m3u.join('\n'));
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
     }
@@ -586,51 +329,29 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
 
 app.get('/api/metadata', async (req, res) => {
     try {
-        const config = await getStalkerConfig();
-        const { token } = await genToken(config);
-        if (!token) {
-            return res.status(500).json({ error: 'Failed to generate token' });
+        const channelsPath = path.join(process.cwd(), 'channels.json');
+        if (!fs.existsSync(channelsPath)) {
+            return res.json({ genres: [], totalChannels: 0 });
         }
-
-        const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
-        let channelsData;
-        try {
-            const response = await fetchStalker(channelsUrl, { headers: getHeaders(config, token) });
-            if (!response.ok) {
-                return res.status(500).json({ error: `Failed to fetch channels: ${response.status}` });
-            }
-            channelsData = JSON.parse(await response.text());
-        } catch (e: any) {
-            return res.status(500).json({ error: `Error fetching channels: ${e.message}` });
-        }
-
-        const genres = await getGenres(config, token);
-
-        let channels: any[] = [];
-        let itemsToMap: any[] = [];
-        if (channelsData.js?.data && Array.isArray(channelsData.js.data)) {
-            itemsToMap = channelsData.js.data;
-        } else if (channelsData.js && Array.isArray(channelsData.js)) {
-            itemsToMap = channelsData.js;
-        }
-
-        channels = itemsToMap.map((item: any) => ({
-            id: item.tv_genre_id || '',
-        }));
-
+        
+        const channelsRaw = fs.readFileSync(channelsPath, 'utf8');
+        const channels = JSON.parse(channelsRaw);
+        
         const genreCounts: Record<string, number> = {};
-        channels.forEach(ch => {
-            if (ch.id) {
-                genreCounts[ch.id] = (genreCounts[ch.id] || 0) + 1;
-            }
+        const genresSet = new Set<string>();
+        
+        channels.forEach((ch: any) => {
+           let group = ch.group || 'Other';
+           genresSet.add(group);
+           genreCounts[group] = (genreCounts[group] || 0) + 1;
         });
 
-        const formattedGenres = genres.map((g: any) => ({
-            id: g.id,
-            title: g.title,
-            count: genreCounts[g.id] || 0
-        })).filter((g: any) => g.count > 0);
-
+        const formattedGenres = Array.from(genresSet).map(g => ({
+            id: g,
+            title: g,
+            count: genreCounts[g] || 0
+        }));
+        
         res.json({ genres: formattedGenres, totalChannels: channels.length });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -647,6 +368,9 @@ app.get('/:token/:id.m3u8', async (req, res) => {
         return;
     }
     
+    // allow CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
@@ -659,25 +383,30 @@ app.get('/:token/:id.m3u8', async (req, res) => {
     }
 
     try {
-        const config = await getStalkerConfig();
-        const { token } = await genToken(config);
-        if (!token) {
-            return res.status(500).send('Internal Server Error: Failed to generate token');
+        const channelsPath = path.join(process.cwd(), 'channels.json');
+        if (!fs.existsSync(channelsPath)) {
+             return res.status(500).send("Database missing");
         }
-
-        let stream = await getStreamURL(config, id, token);
-        if (!stream) {
-            return res.status(500).send('No stream URL received');
+        
+        const channelsRaw = fs.readFileSync(channelsPath, 'utf8');
+        const channels = JSON.parse(channelsRaw);
+        
+        const channelId = id.replace(/\.m3u8$/, '');
+        let targetUrl = '';
+        
+        for (const ch of channels) {
+             if (String(ch.channel_id) === String(channelId)) {
+                  targetUrl = ch.channel_url;
+                  break;
+             }
         }
-
-        const httpMatch = stream.match(/(http[s]?:\/\/[^\s]+)/);
-        if (httpMatch) {
-            stream = httpMatch[1];
+        
+        if (!targetUrl) {
+            return res.status(404).send("Channel not found");
         }
-
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.redirect(302, stream);
+        res.redirect(302, targetUrl);
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
     }

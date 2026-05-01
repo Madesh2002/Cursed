@@ -1,0 +1,26 @@
+[
+  {
+    "channel_id": "xociety",
+    "extinf": "#EXTINF:-1 tvg-name=\"Telegram: @xocietylive\" tvg-logo=\"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644\" group-title=\"𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌\",Telegram • @xocietylive",
+    "channel_url": "https://xociety-intro.vercel.app/xociety.m3u8",
+    "group": "𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌"
+  },
+  {
+    "channel_id": "475241",
+    "extinf": "#EXTINF:-1 tvg-id=\"Default\" tvg-name=\"WHATS NEW | WATCH TV\" tvg-logo=\"http://tv.saartv.cc/stalker_portal/misc/logos/320/71914.png\" group-title=\"Other\",WHATS NEW | WATCH TV",
+    "channel_url": "https://xophp.soul0busters.workers.dev/475241.m3u",
+    "group": "Other"
+  },
+  {
+    "channel_id": "481785",
+    "extinf": "#EXTINF:-1 tvg-id=\"Default\" tvg-name=\"GULF WAR (2026) 1\" tvg-logo=\"\" group-title=\"Other\",GULF WAR (2026) 1",
+    "channel_url": "https://xophp.soul0busters.workers.dev/481785.m3u",
+    "group": "Other"
+  },
+  {
+    "channel_id": "481786",
+    "extinf": "#EXTINF:-1 tvg-id=\"Default\" tvg-name=\"GULF WAR (2026) 2\" tvg-logo=\"\" group-title=\"Other\",GULF WAR (2026) 2",
+    "channel_url": "https://xophp.soul0busters.workers.dev/481786.m3u",
+    "group": "Other"
+  }
+]
