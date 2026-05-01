@@ -474,15 +474,20 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         const genres = await getGenres(config, token);
 
         let channels: any[] = [];
-        if (channelsData.js?.data) {
-            channels = channelsData.js.data.map((item: any) => ({
-                name: item.name || 'Unknown',
-                cmd: item.cmd || '',
-                tvgid: item.xmltv_id || '',
-                id: item.tv_genre_id || '',
-                logo: item.logo || ''
-            }));
+        let itemsToMap: any[] = [];
+        if (channelsData.js?.data && Array.isArray(channelsData.js.data)) {
+            itemsToMap = channelsData.js.data;
+        } else if (channelsData.js && Array.isArray(channelsData.js)) {
+            itemsToMap = channelsData.js;
         }
+
+        channels = itemsToMap.map((item: any) => ({
+            name: item.name || 'Unknown',
+            cmd: item.cmd || '',
+            tvgid: item.xmltv_id || '',
+            id: item.tv_genre_id || '',
+            logo: item.logo || ''
+        }));
 
         const groupTitleMap: Record<string, string> = {};
         genres.forEach((group: any) => {
@@ -532,11 +537,16 @@ app.get('/api/metadata', async (req, res) => {
         const genres = await getGenres(config, token);
 
         let channels: any[] = [];
-        if (channelsData.js?.data) {
-            channels = channelsData.js.data.map((item: any) => ({
-                id: item.tv_genre_id || '',
-            }));
+        let itemsToMap: any[] = [];
+        if (channelsData.js?.data && Array.isArray(channelsData.js.data)) {
+            itemsToMap = channelsData.js.data;
+        } else if (channelsData.js && Array.isArray(channelsData.js)) {
+            itemsToMap = channelsData.js;
         }
+
+        channels = itemsToMap.map((item: any) => ({
+            id: item.tv_genre_id || '',
+        }));
 
         const genreCounts: Record<string, number> = {};
         channels.forEach(ch => {
