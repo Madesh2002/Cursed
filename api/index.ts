@@ -278,7 +278,12 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         return res.status(200).send(generateErrorM3U('Error: Browser detected or invalid player. Please use a dedicated IPTV player.'));
     }
 
-    if (req.params.token && req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+    if (!req.params.token) {
+        res.setHeader('Content-Type', 'application/x-mpegURL');
+        return res.status(200).send(generateErrorM3U('Error: Invalid or missing token. Please use a valid token URL.'));
+    }
+
+    if (req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
         res.setHeader('Content-Type', 'application/x-mpegURL');
         return res.status(200).send(generateErrorM3U('Error: Token is expired, invalid, or device limit reached.'));
     }
@@ -374,7 +379,11 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
         return res.status(200).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This stream only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
     }
 
-    if (req.params.token && req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+    if (!req.params.token) {
+        return res.status(200).send('Error: Invalid or missing token. Please use a valid token URL.');
+    }
+
+    if (req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
         return res.status(200).send('Error: Token is expired, invalid, or device limit reached.');
     }
 
