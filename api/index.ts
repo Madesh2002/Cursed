@@ -394,13 +394,12 @@ async function convertJsonToM3U(config: any, channels: any[], profile: any, acco
         ''
     ];
 
-    m3u.push('#EXTINF:-1 tvg-name="Telegram: @xocietylive" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" group-title="𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌" "group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" ,Telegram • @xocietylive');
+    m3u.push('#EXTINF:-1 tvg-name="Telegram: @xocietylive" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" group-title="𝐓𝐄𝐋𝐄𝐆𝐑𝐀𝐌" group-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1024px-Telegram_logo.svg.png?20220101141644" ,Telegram • @xocietylive');
     m3u.push('https://xociety-intro.vercel.app/xociety.m3u8');
 
     if (channels.length) {
         channels.forEach((channel) => {
-            let cmd = channel.cmd || '';
-            let real_cmd = cmd.replace('ffrt http://localhost/ch/', '');
+            let real_cmd = channel.id;
             if (!real_cmd) {
                 real_cmd = 'unknown';
             }
@@ -437,7 +436,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const generateErrorM3U = (message: string) => `#EXTM3U\n#EXTINF:-1 tvg-id="" tvg-name="Error" tvg-logo="" group-title="Error",${message}\nhttp://localhost/error.m3u8\n`;
+    const generateErrorM3U = (message: string) => `#EXTM3U\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${message}" tvg-logo="" group-title="Error",${message}\nhttps://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8\n`;
 
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
@@ -485,7 +484,8 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
             name: item.name || 'Unknown',
             cmd: item.cmd || '',
             tvgid: item.xmltv_id || '',
-            id: item.tv_genre_id || '',
+            id: item.id || '',
+            genre_id: item.tv_genre_id || '',
             logo: item.logo || ''
         }));
 
@@ -496,12 +496,12 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
 
         channels = channels.map((channel: any) => ({
             ...channel,
-            title: groupTitleMap[channel.id] || 'Other'
+            title: groupTitleMap[channel.genre_id] || 'Other'
         }));
 
         const requestedGenres = req.query.genres ? (req.query.genres as string).split(',') : null;
         if (requestedGenres && requestedGenres.length > 0) {
-            channels = channels.filter((channel: any) => requestedGenres.includes(channel.id));
+            channels = channels.filter((channel: any) => requestedGenres.includes(channel.genre_id));
         }
 
         const m3uContent = await convertJsonToM3U(config, channels, profile, account_info, origin, providedToken);
@@ -605,6 +605,8 @@ app.get('/:token/:id.m3u8', async (req, res) => {
             stream = httpMatch[1];
         }
 
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         res.redirect(302, stream);
     } catch (e: any) {
         res.status(500).send(`Internal Server Error: ${e.message}`);
