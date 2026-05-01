@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 
 const configPath = path.join(process.cwd(), 'stalker-config.json');
+const tmpConfigPath = '/tmp/stalker-config.json';
+let memoryConfig: any = null;
 
 const defaultConfig = {
     host: 'tv.saartv.cc',
@@ -18,28 +20,61 @@ const defaultConfig = {
 };
 
 function getStalkerConfigSync() {
+    if (memoryConfig) return { ...memoryConfig };
     try {
         if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf8');
-            return JSON.parse(data);
+            memoryConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            return { ...memoryConfig };
+        }
+        if (fs.existsSync(tmpConfigPath)) {
+            memoryConfig = JSON.parse(fs.readFileSync(tmpConfigPath, 'utf8'));
+            return { ...memoryConfig };
         }
     } catch (e) {
         console.error("Error reading local config:", e);
     }
-    return defaultConfig;
+    return { ...defaultConfig };
+}
+
+function saveStalkerConfigSync(config: any) {
+    memoryConfig = config;
+    try { fs.writeFileSync(configPath, JSON.stringify(config, null, 2)); } catch(e) {
+        try { fs.writeFileSync(tmpConfigPath, JSON.stringify(config, null, 2)); } catch(e2) {}
+    }
 }
 
 const app = express();
 app.use(express.json());
 
+let memoryTokens: any = null;
 const tokensPath = path.join(process.cwd(), 'active_tokens.json');
+const tmpTokensPath = '/tmp/active_tokens.json';
+
+function getTokensFromDisk() {
+    if (memoryTokens) return memoryTokens;
+    try {
+        if (fs.existsSync(tokensPath)) {
+            memoryTokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+            return memoryTokens;
+        }
+        if (fs.existsSync(tmpTokensPath)) {
+            memoryTokens = JSON.parse(fs.readFileSync(tmpTokensPath, 'utf8'));
+            return memoryTokens;
+        }
+    } catch (e) {}
+    return {};
+}
+
+function saveTokensToDisk(tokens: any) {
+    memoryTokens = tokens;
+    try { fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2)); } catch(e) {
+        try { fs.writeFileSync(tmpTokensPath, JSON.stringify(tokens, null, 2)); } catch(e2) {}
+    }
+}
 
 function syncTokenStorage(token: string, expiryTime: number, username?: string) {
     try {
-        let tokens: any = {};
-        if (fs.existsSync(tokensPath)) {
-            tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
-        }
+        let tokens: any = getTokensFromDisk();
         
         const existingData = tokens[token] || {};
         
@@ -63,7 +98,7 @@ function syncTokenStorage(token: string, expiryTime: number, username?: string) 
             const expiry = typeof tokens[t] === 'number' ? tokens[t] : tokens[t]?.expiryTime;
             if (expiry && expiry < now) delete tokens[t];
         }
-        fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+        saveTokensToDisk(tokens);
     } catch (e) {
         console.error("Error setting token:", e);
     }
@@ -72,8 +107,7 @@ function syncTokenStorage(token: string, expiryTime: number, username?: string) 
 function verifyToken(token: string): boolean {
     if (!token) return false;
     try {
-        if (!fs.existsSync(tokensPath)) return false;
-        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokens = getTokensFromDisk();
         const tokenData = tokens[token];
         if (!tokenData) return false;
         
@@ -90,8 +124,7 @@ function verifyToken(token: string): boolean {
 function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
     if (!token) return false;
     try {
-        if (!fs.existsSync(tokensPath)) return false;
-        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokens = getTokensFromDisk();
         let tokenData = tokens[token];
         
         if (!tokenData) return false;
@@ -114,7 +147,7 @@ function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
             const deviceCount = Object.keys(tokenData.devices).length;
             if (deviceCount >= 4) {
                tokenData.blocked = true;
-               fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+               saveTokensToDisk(tokens);
                console.log(`Token ${token} blocked due to >4 devices. IP: ${ip}`);
                return false;
             }
@@ -127,7 +160,7 @@ function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
         };
         
         console.log(`[Token: ${token}] Accessed by Device: ${ip} | UA: ${ua}`);
-        fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+        saveTokensToDisk(tokens);
         return true;
 
     } catch (e) {
@@ -139,8 +172,7 @@ function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
 function checkRecovery(token: string, username: string): boolean {
     if (!token || !username) return false;
     try {
-        if (!fs.existsSync(tokensPath)) return false;
-        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokens = getTokensFromDisk();
         const tokenData = tokens[token];
         if (!tokenData) return false;
         return tokenData.username === username;
@@ -189,10 +221,10 @@ app.post('/api/recover', (req, res) => {
 app.get('/api/tokens/:token', (req, res) => {
     const { token } = req.params;
     try {
-        if (!fs.existsSync(tokensPath)) {
+        const tokens = getTokensFromDisk();
+        if (Object.keys(tokens).length === 0) {
             return res.json({ error: 'No tokens found' });
         }
-        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
         const tokenData = tokens[token];
         
         if (tokenData) {
@@ -221,10 +253,10 @@ app.get('/api/tokens/:token', (req, res) => {
 app.delete('/api/tokens/:token/devices/:deviceId', (req, res) => {
     const { token, deviceId } = req.params;
     try {
-        if (!fs.existsSync(tokensPath)) {
+        const tokens = getTokensFromDisk();
+        if (Object.keys(tokens).length === 0) {
             return res.status(404).json({ error: 'No tokens found' });
         }
-        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
         const tokenData = tokens[token];
         
         if (tokenData && tokenData.devices && tokenData.devices[deviceId]) {
@@ -233,7 +265,7 @@ app.delete('/api/tokens/:token/devices/:deviceId', (req, res) => {
             if (Object.keys(tokenData.devices).length < 4) {
                 tokenData.blocked = false;
             }
-            fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+            saveTokensToDisk(tokens);
             res.json({ success: true });
         } else {
             res.status(404).json({ error: 'Device not found' });
@@ -249,7 +281,7 @@ app.get('/api/settings/config', (req, res) => {
 
 app.post('/api/settings/config', (req, res) => {
     try {
-        fs.writeFileSync(configPath, JSON.stringify(req.body, null, 2));
+        saveStalkerConfigSync(req.body);
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -436,7 +468,10 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const generateErrorM3U = (message: string) => `#EXTM3U\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${message}" tvg-logo="" group-title="Error",${message}\nhttps://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8\n`;
+    const generateErrorM3U = (message: string) => {
+        const cleanMessage = message.replace(/"/g, "'").replace(/\n/g, ' ');
+        return `#EXTM3U\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${cleanMessage}" tvg-logo="" group-title="Error",${cleanMessage}\nhttps://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8\n`;
+    };
 
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
