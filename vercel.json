@@ -5,6 +5,18 @@
         "destination": "/api/index.js"
       },
       {
+        "source": "/playlist.m3u",
+        "destination": "/api/index.js"
+      },
+      {
+        "source": "/playlist.m3u8",
+        "destination": "/api/index.js"
+      },
+      {
+        "source": "/:id.m3u8",
+        "destination": "/api/index.js"
+      },
+      {
         "source": "/:token/playlist.m3u",
         "destination": "/api/index.js"
       },

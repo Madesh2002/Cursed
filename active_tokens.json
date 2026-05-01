@@ -1,13 +1,13 @@
 {
   "mytoken": {
-    "expiryTime": 1777650829732,
+    "expiryTime": 1777651896641,
     "username": "",
     "blocked": false,
     "devices": {
       "33213c947c79c61fb88c44104f4e32ee": {
         "ip": "127.0.0.1",
         "userAgent": "node",
-        "lastSeen": 1777650743556
+        "lastSeen": 1777651796764
       }
     }
   }

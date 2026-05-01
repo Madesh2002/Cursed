@@ -261,7 +261,7 @@ function parseM3U(m3uText: string) {
 }
 
 const handlePlaylist = async (req: express.Request, res: express.Response) => {
-    const providedToken = req.params.token;
+    const providedToken = req.params.token || 'public';
     const scheme = req.get('x-forwarded-proto') || req.protocol;
     const origin = `${scheme}://${req.get('host')}`;
 
@@ -282,7 +282,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         return res.status(200).send(generateErrorM3U('Error: Browser detected or invalid player. Please use a dedicated IPTV player.'));
     }
 
-    if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+    if (req.params.token && req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
         return res.status(200).send(generateErrorM3U('Error: Token is expired, invalid, or device limit reached.'));
     }
@@ -304,7 +304,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         
         let m3u = ['#EXTM3U'];
         m3u.push(`# Total Channels => ${totalChannels}`);
-        m3u.push('# Script => @TheCursedCelestiaI\n');
+        m3u.push('# Script => @TheCursedCelestiaI');
 
         channels.forEach((ch: any) => {
              if (requestedGenres && !requestedGenres.includes(ch.group)) {
@@ -315,8 +315,8 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
              } else {
                  m3u.push(`#EXTINF:-1 group-title="${ch.group || 'Other'}",Channel`);
              }
-             // For telegram channel (xociety) which is already in the list, just use the endpoint
-             m3u.push(`${origin}/${providedToken}/${ch.channel_id}.m3u8`);
+             const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.m3u8` : `/${ch.channel_id}.m3u8`;
+             m3u.push(`${origin}${targetPath}`);
         });
         
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
@@ -358,12 +358,14 @@ app.get('/api/metadata', async (req, res) => {
     }
 });
 
+app.get('/playlist.m3u', handlePlaylist);
+app.get('/playlist.m3u8', handlePlaylist);
 app.get('/:token/playlist.m3u', handlePlaylist);
 app.get('/:token/playlist.m3u8', handlePlaylist);
 
-app.get('/:token/:id.m3u8', async (req, res) => {
-    const providedToken = req.params.token;
+app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
     const id = req.params.id;
+    const providedToken = req.params.token || 'public';
     if (!id || id === 'playlist') {
         return;
     }
@@ -378,7 +380,7 @@ app.get('/:token/:id.m3u8', async (req, res) => {
         return res.status(200).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This stream only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
     }
 
-    if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+    if (req.params.token && req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
         return res.status(200).send('Error: Token is expired, invalid, or device limit reached.');
     }
 
