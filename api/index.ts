@@ -150,20 +150,20 @@ function checkRecovery(token: string, username: string): boolean {
 }
 
 function isAllowedUserAgent(ua: string | undefined): boolean {
-    if (!ua) return false;
+    if (!ua) return true; // Many IPTV players send empty headers
     const lowerUA = ua.toLowerCase();
     
-    // Explicitly allowed
-    if (lowerUA.includes('ott navigator') || lowerUA.includes('tivimate') || lowerUA.includes('ns player')) {
+    // Explicitly allowed even if it contains "mozilla"
+    if (lowerUA.includes('ott') || lowerUA.includes('tivimate') || lowerUA.includes('ns player') || lowerUA.includes('iptv') || lowerUA.includes('exoplayer')) {
         return true;
     }
 
     // Block typical browsers
-    if (lowerUA.includes('mozilla') || lowerUA.includes('chrome') || lowerUA.includes('safari') || lowerUA.includes('edge') || lowerUA.includes('opera')) {
+    if (lowerUA.includes('mozilla') && (lowerUA.includes('chrome') || lowerUA.includes('safari') || lowerUA.includes('edge') || lowerUA.includes('opera'))) {
         return false;
     }
     
-    // Allow others (like generic curl, python-requests, default ExoPlayer)
+    // Allow others
     return true; 
 }
 
@@ -437,19 +437,24 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
+    const generateErrorM3U = (message: string) => `#EXTM3U\n#EXTINF:-1 tvg-id="" tvg-name="Error" tvg-logo="" group-title="Error",${message}\nhttp://localhost/error.m3u8\n`;
+
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
-        return res.status(403).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This playlist URL only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        return res.status(200).send(generateErrorM3U('Error: Browser detected or invalid player. Please use a dedicated IPTV player.'));
     }
 
     if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
-        return res.status(403).send('Error: Token is expired, invalid, or device limit reached.');
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        return res.status(200).send(generateErrorM3U('Error: Token is expired, invalid, or device limit reached.'));
     }
 
     try {
         const config = await getStalkerConfig();
         const { token, profile, account_info } = await genToken(config);
         if (!token) {
-            return res.status(500).send('Internal Server Error: Failed to generate token');
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            return res.status(200).send(generateErrorM3U('Internal Server Error: Failed to generate token from stalker portal'));
         }
 
         const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
@@ -457,11 +462,13 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         try {
             const response = await fetch(channelsUrl, { headers: getHeaders(config, token) });
             if (!response.ok) {
-                return res.status(500).send(`Failed to fetch channels: ${response.status}`);
+                res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+                return res.status(200).send(generateErrorM3U(`Failed to fetch channels from stalker portal: ${response.status}`));
             }
             channelsData = JSON.parse(await response.text());
         } catch (e: any) {
-            return res.status(500).send(`Error fetching channels: ${e.message}`);
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            return res.status(200).send(generateErrorM3U(`Error fetching channels: ${e.message}`));
         }
 
         const genres = await getGenres(config, token);
@@ -564,11 +571,11 @@ app.get('/:token/:id.m3u8', async (req, res) => {
     const userAgent = req.headers['user-agent'] || 'unknown';
 
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
-        return res.status(403).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This stream only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
+        return res.status(200).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This stream only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
     }
 
     if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
-        return res.status(403).send('Error: Token is expired, invalid, or device limit reached.');
+        return res.status(200).send('Error: Token is expired, invalid, or device limit reached.');
     }
 
     try {
