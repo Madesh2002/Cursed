@@ -2,31 +2,31 @@
     "rewrites": [
       {
         "source": "/api/(.*)",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/playlist.m3u",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/playlist.m3u8",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/:id.m3u8",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/:token/playlist.m3u",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/:token/playlist.m3u8",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/:token/:id.m3u8",
-        "destination": "/api/index.js"
+        "destination": "/api/index"
       },
       {
         "source": "/(.*)",
