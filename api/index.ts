@@ -1,49 +1,263 @@
 import express from 'express';
 import crypto from 'crypto';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import fs from 'fs';
+import path from 'path';
 
-const firebaseConfig = {
-    apiKey: "AIzaSyDdowv0IXhJikRNoy3riJqjcz1rX1vmc5Y",
-    authDomain: "xotoken-a0d60.firebaseapp.com",
-    projectId: "xotoken-a0d60",
-    storageBucket: "xotoken-a0d60.firebasestorage.app",
-    messagingSenderId: "332885529359",
-    appId: "1:332885529359:web:fe51ca50a1d452e91a247a",
-    measurementId: "G-V0NYB4SG6M"
+const configPath = path.join(process.cwd(), 'stalker-config.json');
+
+const defaultConfig = {
+    host: 'tv.saartv.cc',
+    mac_address: '00:1A:79:00:4D:84',
+    serial_number: '58E6A1E78FB02',
+    device_id: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
+    device_id_2: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
+    stb_type: 'MAG250',
+    api_signature: '263',
+    hw_version: '',
+    hw_version_2: ''
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-
-let cachedConfig: any = null;
-let lastConfigFetch = 0;
-
-async function getStalkerConfig() {
-    if (cachedConfig && Date.now() - lastConfigFetch < 5 * 60 * 1000) {
-        return cachedConfig;
-    }
+function getStalkerConfigSync() {
     try {
-        const configDoc = await getDoc(doc(db, 'settings', 'stalkerConfig'));
-        if (configDoc.exists()) {
-            cachedConfig = configDoc.data();
-            lastConfigFetch = Date.now();
-            return cachedConfig;
+        if (fs.existsSync(configPath)) {
+            const data = fs.readFileSync(configPath, 'utf8');
+            return JSON.parse(data);
         }
     } catch (e) {
-        console.error("Error fetching config from Firebase:", e);
+        console.error("Error reading local config:", e);
     }
-    return {
-        host: 'tv.saartv.cc',
-        mac_address: '00:1A:79:00:4D:84',
-        serial_number: '58E6A1E78FB02',
-        device_id: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
-        device_id_2: '6AD7860A1E2D78D9961D17DFA34D4C70D06CFFC1F807B8115F627648121C4339',
-        stb_type: 'MAG250',
-        api_signature: '263',
-        hw_version: '',
-        hw_version_2: ''
-    };
+    return defaultConfig;
+}
+
+const app = express();
+app.use(express.json());
+
+const tokensPath = path.join(process.cwd(), 'active_tokens.json');
+
+function syncTokenStorage(token: string, expiryTime: number, username?: string) {
+    try {
+        let tokens: any = {};
+        if (fs.existsSync(tokensPath)) {
+            tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        }
+        
+        const existingData = tokens[token] || {};
+        
+        // Preserve username if it exists and a new one isn't provided
+        let currentUsername = existingData.username || '';
+        if (username !== undefined) {
+           currentUsername = username;
+        }
+
+        tokens[token] = { 
+            expiryTime, 
+            username: currentUsername,
+            blocked: existingData.blocked || false,
+            devices: existingData.devices || {}
+        };
+        
+        // Cleanup expired tokens
+        const now = Date.now();
+        for (const t in tokens) {
+            // backward compatibility check
+            const expiry = typeof tokens[t] === 'number' ? tokens[t] : tokens[t]?.expiryTime;
+            if (expiry && expiry < now) delete tokens[t];
+        }
+        fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+    } catch (e) {
+        console.error("Error setting token:", e);
+    }
+}
+
+function verifyToken(token: string): boolean {
+    if (!token) return false;
+    try {
+        if (!fs.existsSync(tokensPath)) return false;
+        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokenData = tokens[token];
+        if (!tokenData) return false;
+        
+        const expiry = typeof tokenData === 'number' ? tokenData : tokenData.expiryTime;
+        if (!expiry) return false;
+        if (Date.now() > expiry) return false;
+        if (tokenData.blocked) return false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function trackAndVerifyDevice(token: string, ip: string, ua: string): boolean {
+    if (!token) return false;
+    try {
+        if (!fs.existsSync(tokensPath)) return false;
+        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        let tokenData = tokens[token];
+        
+        if (!tokenData) return false;
+        
+        if (typeof tokenData === 'number') {
+            tokens[token] = { expiryTime: tokenData, username: '', blocked: false, devices: {} };
+            tokenData = tokens[token];
+        }
+        
+        const expiry = tokenData.expiryTime;
+        if (!expiry || Date.now() > expiry) return false;
+        
+        if (tokenData.blocked) return false;
+
+        if (!tokenData.devices) tokenData.devices = {};
+        
+        const deviceId = crypto.createHash('md5').update(`${ip}-${ua}`).digest('hex');
+        
+        if (!tokenData.devices[deviceId]) {
+            const deviceCount = Object.keys(tokenData.devices).length;
+            if (deviceCount >= 4) {
+               tokenData.blocked = true;
+               fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+               console.log(`Token ${token} blocked due to >4 devices. IP: ${ip}`);
+               return false;
+            }
+        }
+        
+        tokenData.devices[deviceId] = {
+           ip,
+           userAgent: ua,
+           lastSeen: Date.now()
+        };
+        
+        console.log(`[Token: ${token}] Accessed by Device: ${ip} | UA: ${ua}`);
+        fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+        return true;
+
+    } catch (e) {
+        console.error("Device track error:", e);
+        return false;
+    }
+}
+
+function checkRecovery(token: string, username: string): boolean {
+    if (!token || !username) return false;
+    try {
+        if (!fs.existsSync(tokensPath)) return false;
+        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokenData = tokens[token];
+        if (!tokenData) return false;
+        return tokenData.username === username;
+    } catch (e) {
+        return false;
+    }
+}
+
+function isAllowedUserAgent(ua: string | undefined): boolean {
+    if (!ua) return false;
+    const lowerUA = ua.toLowerCase();
+    
+    // Explicitly allowed
+    if (lowerUA.includes('ott navigator') || lowerUA.includes('tivimate') || lowerUA.includes('ns player')) {
+        return true;
+    }
+
+    // Block typical browsers
+    if (lowerUA.includes('mozilla') || lowerUA.includes('chrome') || lowerUA.includes('safari') || lowerUA.includes('edge') || lowerUA.includes('opera')) {
+        return false;
+    }
+    
+    // Allow others (like generic curl, python-requests, default ExoPlayer)
+    return true; 
+}
+
+app.post('/api/tokens', (req, res) => {
+    const { token, expiryTime, username } = req.body;
+    if (token && expiryTime) {
+        syncTokenStorage(token, expiryTime, username);
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ error: 'Missing token or expiryTime' });
+    }
+});
+
+app.post('/api/recover', (req, res) => {
+    const { token, username } = req.body;
+    if (checkRecovery(token, username)) {
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ error: 'Invalid token or username' });
+    }
+});
+
+app.get('/api/tokens/:token', (req, res) => {
+    const { token } = req.params;
+    try {
+        if (!fs.existsSync(tokensPath)) {
+            return res.json({ error: 'No tokens found' });
+        }
+        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokenData = tokens[token];
+        
+        if (tokenData) {
+           const devices = tokenData.devices || {};
+           const formattedDevices = Object.keys(devices).map(deviceId => ({
+               id: deviceId,
+               ip: devices[deviceId].ip,
+               userAgent: devices[deviceId].userAgent,
+               lastSeen: devices[deviceId].lastSeen
+           }));
+           
+           res.json({
+               expiryTime: tokenData.expiryTime,
+               username: tokenData.username || '',
+               blocked: tokenData.blocked || false,
+               devices: formattedDevices
+           });
+        } else {
+           res.status(404).json({ error: 'Token not found' });
+        }
+    } catch (e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/tokens/:token/devices/:deviceId', (req, res) => {
+    const { token, deviceId } = req.params;
+    try {
+        if (!fs.existsSync(tokensPath)) {
+            return res.status(404).json({ error: 'No tokens found' });
+        }
+        const tokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+        const tokenData = tokens[token];
+        
+        if (tokenData && tokenData.devices && tokenData.devices[deviceId]) {
+            delete tokenData.devices[deviceId];
+            // If device limit drops below 4, optionally unblock?
+            if (Object.keys(tokenData.devices).length < 4) {
+                tokenData.blocked = false;
+            }
+            fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2));
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Device not found' });
+        }
+    } catch (e) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/settings/config', (req, res) => {
+    res.json(getStalkerConfigSync());
+});
+
+app.post('/api/settings/config', (req, res) => {
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(req.body, null, 2));
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+async function getStalkerConfig() {
+    return getStalkerConfigSync();
 }
 
 async function hash(str: string) {
@@ -209,8 +423,6 @@ async function convertJsonToM3U(config: any, channels: any[], profile: any, acco
     return m3u.join('\n');
 }
 
-const app = express();
-
 const handlePlaylist = async (req: express.Request, res: express.Response) => {
     const providedToken = req.params.token;
     // req.get('host') inside Vercel gives the deployed domain.
@@ -219,6 +431,18 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
 
     if (providedToken === 'src' || providedToken === 'lib' || providedToken === 'node_modules' || providedToken === 'assets' || providedToken === 'api') {
       return res.status(404).send('Not Found');
+    }
+    
+    // Get device info
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    if (!isAllowedUserAgent(req.headers['user-agent'])) {
+        return res.status(403).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This playlist URL only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
+    }
+
+    if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+        return res.status(403).send('Error: Token is expired, invalid, or device limit reached.');
     }
 
     try {
@@ -258,10 +482,15 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
             groupTitleMap[group.id] = group.title || 'Other';
         });
 
-        channels = channels.map(channel => ({
+        channels = channels.map((channel: any) => ({
             ...channel,
             title: groupTitleMap[channel.id] || 'Other'
         }));
+
+        const requestedGenres = req.query.genres ? (req.query.genres as string).split(',') : null;
+        if (requestedGenres && requestedGenres.length > 0) {
+            channels = channels.filter((channel: any) => requestedGenres.includes(channel.id));
+        }
 
         const m3uContent = await convertJsonToM3U(config, channels, profile, account_info, origin, providedToken);
 
@@ -273,13 +502,73 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
     }
 };
 
+app.get('/api/metadata', async (req, res) => {
+    try {
+        const config = await getStalkerConfig();
+        const { token } = await genToken(config);
+        if (!token) {
+            return res.status(500).json({ error: 'Failed to generate token' });
+        }
+
+        const channelsUrl = `http://${config.host}/stalker_portal/server/load.php?type=itv&action=get_all_channels&JsHttpRequest=1-xml`;
+        let channelsData;
+        try {
+            const response = await fetch(channelsUrl, { headers: getHeaders(config, token) });
+            if (!response.ok) {
+                return res.status(500).json({ error: `Failed to fetch channels: ${response.status}` });
+            }
+            channelsData = JSON.parse(await response.text());
+        } catch (e: any) {
+            return res.status(500).json({ error: `Error fetching channels: ${e.message}` });
+        }
+
+        const genres = await getGenres(config, token);
+
+        let channels: any[] = [];
+        if (channelsData.js?.data) {
+            channels = channelsData.js.data.map((item: any) => ({
+                id: item.tv_genre_id || '',
+            }));
+        }
+
+        const genreCounts: Record<string, number> = {};
+        channels.forEach(ch => {
+            if (ch.id) {
+                genreCounts[ch.id] = (genreCounts[ch.id] || 0) + 1;
+            }
+        });
+
+        const formattedGenres = genres.map((g: any) => ({
+            id: g.id,
+            title: g.title,
+            count: genreCounts[g.id] || 0
+        })).filter((g: any) => g.count > 0);
+
+        res.json({ genres: formattedGenres, totalChannels: channels.length });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/:token/playlist.m3u', handlePlaylist);
 app.get('/:token/playlist.m3u8', handlePlaylist);
 
 app.get('/:token/:id.m3u8', async (req, res) => {
+    const providedToken = req.params.token;
     const id = req.params.id;
     if (!id || id === 'playlist') {
         return;
+    }
+    
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    if (!isAllowedUserAgent(req.headers['user-agent'])) {
+        return res.status(403).send('<html><head><title>Access Denied</title></head><body style="background:#000;color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h1>Error: Access Denied</h1><p>Detection: Browser detected. This stream only works in <b>OTT Navigator</b>, <b>TiviMate</b>, and <b>NS Player</b>.</p></body></html>');
+    }
+
+    if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+        return res.status(403).send('Error: Token is expired, invalid, or device limit reached.');
     }
 
     try {

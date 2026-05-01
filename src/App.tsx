@@ -4,25 +4,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDdowv0IXhJikRNoy3riJqjcz1rX1vmc5Y",
-    authDomain: "xotoken-a0d60.firebaseapp.com",
-    projectId: "xotoken-a0d60",
-    storageBucket: "xotoken-a0d60.firebasestorage.app",
-    messagingSenderId: "332885529359",
-    appId: "1:332885529359:web:fe51ca50a1d452e91a247a",
-    measurementId: "G-V0NYB4SG6M"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings, Folder } from 'lucide-react';
 
 export default function App() {
-  const [hasToken, setHasToken] = useState(false);
+  const [hasToken, setHasToken] = useState(() => !!localStorage.getItem('vplink_token'));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
@@ -30,10 +15,39 @@ export default function App() {
   const [recoverTokenValue, setRecoverTokenValue] = useState('');
   const [recoverUsernameValue, setRecoverUsernameValue] = useState('');
   
-  const [token, setToken] = useState<string>('');
-  const [expiryTime, setExpiryTime] = useState<number | null>(null);
+  const [verificationUsername, setVerificationUsername] = useState('');
+  const [verifiedUsername, setVerifiedUsername] = useState(() => localStorage.getItem('vplink_username') || '');
+  
+  const [token, setToken] = useState<string>(() => localStorage.getItem('vplink_token') || '');
+  const [expiryTime, setExpiryTime] = useState<number | null>(() => {
+    const saved = localStorage.getItem('vplink_expiry');
+    return saved ? parseInt(saved, 10) : null;
+  });
   const [now, setNow] = useState(Date.now());
-  const [activeIps, setActiveIps] = useState<{ id: string, ip: string, timestamp: number }[]>([]);
+  const [activeIps, setActiveIps] = useState<{ id: string, ip: string, timestamp: number }[]>(() => {
+    const saved = localStorage.getItem('vplink_ips');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  useEffect(() => {
+    if (token) localStorage.setItem('vplink_token', token);
+    else localStorage.removeItem('vplink_token');
+  }, [token]);
+
+  useEffect(() => {
+    if (expiryTime) localStorage.setItem('vplink_expiry', expiryTime.toString());
+    else localStorage.removeItem('vplink_expiry');
+  }, [expiryTime]);
+
+  useEffect(() => {
+    if (verifiedUsername) localStorage.setItem('vplink_username', verifiedUsername);
+    else localStorage.removeItem('vplink_username');
+  }, [verifiedUsername]);
+
+  useEffect(() => {
+    localStorage.setItem('vplink_ips', JSON.stringify(activeIps));
+  }, [activeIps]);
+
   const activeDevices = activeIps.length;
   const [isBlocked, setIsBlocked] = useState(false);
   const [currentView, setCurrentView] = useState<'dashboard' | 'ip-manager' | 'add-items' | 'contact-us' | 'customise' | 'admin'>('dashboard');
@@ -66,23 +80,51 @@ export default function App() {
   const [isAdminSaving, setIsAdminSaving] = useState(false);
   const [adminStatus, setAdminStatus] = useState({ type: '', message: '' });
 
-  const genres = [
-    { id: 'business-news', title: 'Business News', count: 15, icon: <Activity size={32} /> },
-    { id: 'entertainment', title: 'Entertainment', count: 197, icon: <PlaySquare size={32} /> },
-    { id: 'infotainment', title: 'Infotainment', count: 55, icon: <Info size={32} /> },
-    { id: 'movies', title: 'Movies', count: 114, icon: <LayoutTemplate size={32} /> },
-    { id: 'sports', title: 'Sports', count: 89, icon: <Activity size={32} /> },
-    { id: 'kids', title: 'Kids', count: 42, icon: <PlaySquare size={32} /> },
-  ];
+  const [genres, setGenres] = useState<any[]>([]);
+  const [totalChannels, setTotalChannels] = useState(0);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+
+  useEffect(() => {
+    if (currentView === 'customise') {
+      const fetchMetadata = async () => {
+        setIsFetchingMetadata(true);
+        try {
+          const res = await fetch('/api/metadata');
+          if (res.ok) {
+            const data = await res.json();
+            setGenres(data.genres || []);
+            setTotalChannels(data.totalChannels || 0);
+          } else {
+            const errData = await res.json();
+            console.error("Error fetching metadata:", errData);
+            setGenres([{ 
+               id: 'error', 
+               title: 'Error: Cannot fetch from server', 
+               count: 0 
+            }]);
+          }
+        } catch (error) {
+          console.error("Error fetching metadata:", error);
+          setGenres([{ 
+             id: 'error', 
+             title: 'Error: Cannot fetch from server', 
+             count: 0 
+          }]);
+        }
+        setIsFetchingMetadata(false);
+      };
+      fetchMetadata();
+    }
+  }, [currentView]);
 
   useEffect(() => {
     if (currentView === 'admin') {
       const fetchConfig = async () => {
         try {
-          const docRef = doc(db, 'settings', 'stalkerConfig');
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            setStalkerConfig(docSnap.data());
+          const res = await fetch('/api/settings/config');
+          if (res.ok) {
+            const data = await res.json();
+            setStalkerConfig(data);
           }
         } catch (error) {
           console.error("Error fetching config:", error);
@@ -102,28 +144,54 @@ export default function App() {
 
   const generateMockIp = () => `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
 
-  // Simulate real-time devices connecting/disconnecting
   useEffect(() => {
-    if (!hasToken || isBlocked) return;
-    const wsMockTimer = setInterval(() => {
-      // 15% chance to fluctuate device count (-1 or +1)
-      if (Math.random() > 0.85) {
-         setActiveIps(prev => {
-            const isAdding = Math.random() > 0.5;
-            if (isAdding) {
-              if (prev.length >= 5) return prev; // Don't exceed 5 for simulation
-              return [...prev, { id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }];
-            } else {
-              if (prev.length <= 0) return prev;
-              const next = [...prev];
-              next.pop();
-              return next;
+    if (!token) return;
+    
+    const fetchTokenInfo = async () => {
+      try {
+         const res = await fetch(`/api/tokens/${token}`);
+         if (res.ok) {
+            const data = await res.json();
+            if (data.devices) {
+               // devices come as array: {id, ip, userAgent, lastSeen}
+               setActiveIps(data.devices.map((d: any) => ({
+                   id: d.id,
+                   ip: d.ip,
+                   timestamp: d.lastSeen,
+                   userAgent: d.userAgent
+               })));
             }
-         });
+            if (data.blocked !== undefined) {
+               setIsBlocked(data.blocked);
+            }
+         }
+      } catch(e) {
+         console.error("Error fetching token info", e);
       }
-    }, 4000);
+    };
+    
+    // Fetch immediately and then poll every 4 seconds
+    fetchTokenInfo();
+    const wsMockTimer = setInterval(fetchTokenInfo, 4000);
     return () => clearInterval(wsMockTimer);
-  }, [hasToken, isBlocked]);
+  }, [token]);
+
+  useEffect(() => {
+    if (token && expiryTime) {
+      const syncToken = async () => {
+        try {
+          await fetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, expiryTime })
+          });
+        } catch (e) {
+          console.error("Error syncing token", e);
+        }
+      };
+      syncToken();
+    }
+  }, [token, expiryTime]);
 
   const applyVplinkToken = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -145,7 +213,17 @@ export default function App() {
         ...stalkerConfig,
         last_sync: new Date().toLocaleTimeString()
       };
-      await setDoc(doc(db, 'settings', 'stalkerConfig'), dataToSave);
+      
+      const res = await fetch('/api/settings/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToSave)
+      });
+      
+      if (!res.ok) {
+          throw new Error('Failed to update server configuration');
+      }
+
       setAdminStatus({ type: 'success', message: 'Server updated instantly!' });
     } catch (error: any) {
       console.error(error);
@@ -207,7 +285,8 @@ export default function App() {
   };
 
   const basePath = typeof window !== 'undefined' ? window.location.origin + window.location.pathname.replace(/\/$/, '') : '';
-  const generatedUrl = token ? `${basePath}/${token}/playlist.m3u` : '';
+  const genresQuery = selectedGenres.length > 0 ? `?genres=${selectedGenres.join(',')}` : '';
+  const generatedUrl = token ? `${basePath}/${token}/playlist.m3u${genresQuery}` : '';
 
   const handleGenerate = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -219,11 +298,31 @@ export default function App() {
     setHasToken(true);
     // 2 minutes from now
     setExpiryTime(Date.now() + 2 * 60 * 1000);
+    setVerifiedUsername('');
+    setVerificationUsername('');
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedUrl);
-    // In a real app, maybe show a toast
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (e) {
+        console.error("Clipboard fallback failed", e);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const openExtendModal = () => {
@@ -399,19 +498,31 @@ export default function App() {
 
                       return (
                         <div key={device.id} className="group flex items-center justify-between bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-100 p-4 rounded-2xl transition-all hover:shadow-lg">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-4 overflow-hidden">
                             <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors shrink-0">
                                <Monitor size={24} className="text-slate-400 group-hover:text-blue-500" />
                             </div>
-                            <div className="truncate">
+                            <div className="truncate min-w-0">
                               <div className="font-mono text-sm font-bold text-slate-700 mb-0.5 truncate">{device.ip}</div>
+                              {device.userAgent && (
+                                 <div className="text-xs text-slate-500 font-medium truncate mb-0.5" title={device.userAgent}>
+                                   {device.userAgent}
+                                 </div>
+                              )}
                               <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                 <Clock size={12} /> {deviceDate}, {deviceTime}
                               </div>
                             </div>
                           </div>
                           <button 
-                            onClick={() => setActiveIps(prev => prev.filter(d => d.id !== device.id))}
+                            onClick={async () => {
+                               try {
+                                  await fetch(`/api/tokens/${token}/devices/${device.id}`, { method: 'DELETE' });
+                                  setActiveIps(prev => prev.filter(d => d.id !== device.id));
+                               } catch (e) {
+                                  console.error("Failed to disconnect", e);
+                               }
+                            }}
                             className="bg-[#ef4444] hover:bg-red-600 text-white p-2.5 rounded-xl transition-all shadow-md hover:shadow-red-200 active:scale-90 shrink-0 ml-2"
                             title="Disconnect Device"
                           >
@@ -467,7 +578,7 @@ export default function App() {
              </div>
              <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-sm font-medium shadow-sm">
                <CircleDot size={18} className="text-[#38bdf8]" />
-               <span>Channels <strong className="text-[#38bdf8] ml-2 text-lg">1275</strong></span>
+               <span>Channels <strong className="text-[#38bdf8] ml-2 text-lg">{totalChannels}</strong></span>
              </div>
              <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-sm font-medium shadow-sm">
                <Check size={18} className="text-[#34d399]" />
@@ -477,62 +588,72 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-6 lg:p-10 pb-36 overflow-y-auto w-full max-w-7xl mx-auto">
+        <main className="flex-1 p-6 lg:p-10 pb-56 lg:pb-36 overflow-y-auto w-full max-w-7xl mx-auto">
           <div className="flex items-center gap-6 mb-10">
             <h2 className="text-lg lg:text-xl font-bold text-[#38bdf8] uppercase tracking-[0.2em] shrink-0">Genre Folders</h2>
             <div className="h-px bg-gradient-to-r from-[#1e293b] to-transparent flex-1"></div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {genres.map(genre => {
-              const isSelected = selectedGenres.includes(genre.id);
-              return (
-                <div 
-                  key={genre.id}
-                  onClick={() => {
-                    setSelectedGenres(prev => 
-                      prev.includes(genre.id) 
-                        ? prev.filter(id => id !== genre.id)
-                        : [...prev, genre.id]
-                    );
-                  }}
-                  className={`group relative flex flex-col items-center justify-center p-8 lg:p-10 rounded-[32px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-2xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-xl'}`}
-                >
-                   {isSelected && (
-                     <div className="absolute top-5 right-5 text-[#38bdf8] animate-in zoom-in duration-300">
-                       <CheckCircle2 size={26} className="fill-[#38bdf8]/20" />
+          {isFetchingMetadata ? (
+            <div className="flex flex-col items-center justify-center p-20 text-slate-400">
+               <RefreshCw className="animate-spin mb-4" size={40} />
+               <p className="text-lg font-medium">Loading server metadata...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {genres.map(genre => {
+                const isSelected = selectedGenres.includes(genre.id);
+                return (
+                  <div 
+                    key={genre.id}
+                    onClick={() => {
+                      setSelectedGenres(prev => 
+                        prev.includes(genre.id) 
+                          ? prev.filter(id => id !== genre.id)
+                          : [...prev, genre.id]
+                      );
+                    }}
+                    className={`group relative flex flex-col items-center justify-center p-8 lg:p-10 rounded-[32px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-2xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-xl'}`}
+                  >
+                     {isSelected && (
+                       <div className="absolute top-5 right-5 text-[#38bdf8] animate-in zoom-in duration-300">
+                         <CheckCircle2 size={26} className="fill-[#38bdf8]/20" />
+                       </div>
+                     )}
+                     <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-lg shadow-blue-500/40 translate-y-[-4px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
+                       <Folder size={32} />
                      </div>
-                   )}
-                   <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-lg shadow-blue-500/40 translate-y-[-4px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
-                     {genre.icon}
-                   </div>
-                   <h3 className="text-xl font-bold text-slate-100 text-center mb-4 leading-tight">{genre.title}</h3>
-                   <div className={`px-6 py-2 rounded-full font-bold text-sm border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
-                     {genre.count} Channels
-                   </div>
-                </div>
-              );
-            })}
-          </div>
+                     <h3 className="text-xl font-bold text-slate-100 text-center mb-4 leading-tight">{genre.title}</h3>
+                     <div className={`px-6 py-2 rounded-full font-bold text-sm border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
+                       {genre.count} Channels
+                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </main>
 
         {/* Bottom Sticky Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-4 lg:p-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 lg:gap-6">
              <div className="text-slate-300 text-center sm:text-left">
-               <div className="text-lg lg:text-xl"><strong className="text-[#38bdf8] text-2xl px-1">{selectedGenres.length}</strong> genres selected</div>
-               <div className="text-slate-500 font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
+               <div className="text-base lg:text-xl"><strong className="text-[#38bdf8] text-xl lg:text-2xl px-1">{selectedGenres.length}</strong> genres selected</div>
+               <div className="text-slate-500 text-sm lg:text-base font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
              </div>
-             <div className="flex gap-4 w-full sm:w-auto">
-               <button className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-emerald-500/20 text-lg">
-                 <Save size={22} />
+             <div className="flex gap-3 lg:gap-4 w-full sm:w-auto">
+               <button 
+                 onClick={() => setCurrentView('dashboard')}
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-3 lg:py-4 px-4 lg:px-10 rounded-xl transition-all shadow-xl shadow-emerald-500/20 text-base lg:text-lg"
+               >
+                 <Save size={20} />
                  Save & Submit
                </button>
                <button 
                  onClick={() => setSelectedGenres([])}
-                 className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-orange-500/20 text-lg"
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-3 lg:py-4 px-4 lg:px-10 rounded-xl transition-all shadow-xl shadow-orange-500/20 text-base lg:text-lg"
                >
-                 <Trash2 size={22} />
+                 <Trash2 size={20} />
                  Reset
                </button>
              </div>
@@ -930,16 +1051,16 @@ export default function App() {
                   <h2 className="text-2xl font-bold text-white mb-6 text-center md:text-left">Your Game File Dashboard</h2>
                   
                   <div className="space-y-4">
-                    <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-center md:text-left">
+                    <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-center">
                       {generatedUrl}
                     </div>
-                    
+
                     <button 
                       onClick={handleCopy}
                       className="w-full px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-lg shadow-lg shadow-blue-500/20"
                     >
-                      <Copy size={20} />
-                      Copy URL
+                      {copied ? <Check size={20} /> : <Copy size={20} />}
+                      {copied ? 'Copied to Clipboard!' : 'Copy Playlist URL'}
                     </button>
                   </div>
                 </div>
@@ -1045,21 +1166,59 @@ export default function App() {
                          <Shield size={22} className="text-blue-400" />
                          Verify Your Token
                       </div>
-                      <div className="space-y-6">
-                         <div>
-                           <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2.5 block">USERNAME</label>
-                           <input type="text" placeholder="Telegram or Discord username" className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium" />
+                      {verifiedUsername ? (
+                         <div className="bg-[#1e293b]/40 rounded-xl p-5 border border-green-500/50 flex flex-col items-center justify-center gap-4 text-center">
+                            <CheckCircle2 size={40} className="text-green-500" />
+                            <div>
+                               <p className="text-white font-bold text-lg mb-1">Successfully Verified</p>
+                               <p className="text-slate-400 font-mono">{verifiedUsername}</p>
+                            </div>
+                            <button 
+                               onClick={() => setVerifiedUsername('')} 
+                               className="mt-2 text-sm text-slate-400 hover:text-white underline transition-colors"
+                            >
+                               Change Username
+                            </button>
                          </div>
-                         <button className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-lg">
-                            <CheckCircle2 size={22} />
-                            Verify Username
-                         </button>
-                         <div className="bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600 mt-2">
-                           <p className="text-slate-400 text-sm leading-relaxed">
-                             <span className="font-bold text-slate-300">Tip:</span> Verification helps you recover your details if you lose access.
-                           </p>
+                      ) : (
+                         <div className="space-y-6">
+                            <div>
+                              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2.5 block">USERNAME</label>
+                              <input 
+                                type="text" 
+                                value={verificationUsername}
+                                onChange={e => setVerificationUsername(e.target.value)}
+                                placeholder="Telegram or Discord username" 
+                                className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium" 
+                              />
+                            </div>
+                            <button 
+                              onClick={async () => {
+                                 if (verificationUsername.trim() && token && expiryTime) {
+                                    try {
+                                       await fetch('/api/tokens', {
+                                         method: 'POST',
+                                         headers: { 'Content-Type': 'application/json' },
+                                         body: JSON.stringify({ token, expiryTime, username: verificationUsername.trim() })
+                                       });
+                                       setVerifiedUsername(verificationUsername.trim());
+                                    } catch (e) {
+                                       console.error("Error verifying username", e);
+                                    }
+                                 }
+                              }}
+                              className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-lg"
+                            >
+                               <CheckCircle2 size={22} />
+                               Verify Username
+                            </button>
+                            <div className="bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600 mt-2">
+                              <p className="text-slate-400 text-sm leading-relaxed">
+                                <span className="font-bold text-slate-300">Tip:</span> Verification helps you recover your details if you lose access.
+                              </p>
+                            </div>
                          </div>
-                      </div>
+                      )}
                    </div>
                 </div>
               </>
@@ -1089,7 +1248,6 @@ export default function App() {
                   'Customise Your File',
                   'IP Manager',
                   'Recover Token',
-                  'Settings',
                   'About Us',
                   'Contact Us'
                 ].map((item) => (
@@ -1105,8 +1263,6 @@ export default function App() {
                           setCurrentView('contact-us');
                         } else if (item === 'Customise Your File') {
                           setCurrentView('customise');
-                        } else if (item === 'Settings') {
-                          setCurrentView('admin');
                         } else if (item === 'Recover Token') {
                           setIsRecoverModalOpen(true);
                         }
@@ -1277,15 +1433,39 @@ export default function App() {
                 Cancel
               </button>
               <button 
-                onClick={() => {
+                onClick={async () => {
                   if (recoverTokenValue && recoverUsernameValue) {
-                     setToken(recoverTokenValue);
-                     setHasToken(true);
-                     setActiveIps([]);
-                     setExpiryTime(Date.now() + 24 * 60 * 60 * 1000);
-                     setIsRecoverModalOpen(false);
-                     setRecoverTokenValue('');
-                     setRecoverUsernameValue('');
+                     try {
+                        const res = await fetch('/api/recover', {
+                           method: 'POST',
+                           headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify({ token: recoverTokenValue, username: recoverUsernameValue })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                           setToken(recoverTokenValue);
+                           setHasToken(true);
+                           setActiveIps([]);
+                           // Recover with new 24 hour expiry or existing one. We will just use 24 hours
+                           const newExpiry = Date.now() + 24 * 60 * 60 * 1000;
+                           setExpiryTime(newExpiry);
+                           
+                           await fetch('/api/tokens', {
+                             method: 'POST',
+                             headers: { 'Content-Type': 'application/json' },
+                             body: JSON.stringify({ token: recoverTokenValue, expiryTime: newExpiry, username: recoverUsernameValue })
+                           });
+                           
+                           setIsRecoverModalOpen(false);
+                           setRecoverTokenValue('');
+                           setRecoverUsernameValue('');
+                           setVerifiedUsername(recoverUsernameValue);
+                        } else {
+                           alert('Invalid token or username');
+                        }
+                     } catch(e) {
+                        alert('Recovery failed. Invalid details or server error.');
+                     }
                   }
                 }}
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors duration-200 shadow-lg shadow-orange-500/20"
