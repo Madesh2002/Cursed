@@ -551,53 +551,53 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between p-4 px-6 lg:px-10 bg-[#0a1128] border-b border-slate-800 relative z-10 sticky top-0">
-          <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-gradient-to-br from-[#38bdf8] to-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30">
-               <Tv size={24} className="text-white" />
+        <header className="flex items-center justify-between p-3 px-5 bg-[#0a1128] border-b border-slate-800 relative z-10 sticky top-0">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-gradient-to-br from-[#38bdf8] to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+               <Tv size={20} className="text-white" />
              </div>
-             <h1 className="text-2xl font-bold text-[#38bdf8] tracking-wide">Channel Customizer</h1>
+             <h1 className="text-xl font-bold text-[#38bdf8] tracking-wide">Channel Customizer</h1>
           </div>
           <button 
             onClick={() => setCurrentView('dashboard')}
-            className="p-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
           >
-            <X size={28} />
+            <X size={24} />
           </button>
         </header>
 
         {/* Badges Bar */}
-        <div className="bg-[#0a1128]/80 backdrop-blur-md border-b border-slate-800 sticky top-[81px] z-10">
-          <div className="flex items-center gap-4 p-4 px-6 lg:px-10 overflow-x-auto whitespace-nowrap hide-scrollbar max-w-7xl mx-auto">
-             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-sm font-medium shadow-sm">
-               <LayoutGrid size={18} className="text-[#38bdf8]" />
-               <span>Genres <strong className="text-[#38bdf8] ml-2 text-lg">{genres.length}</strong></span>
+        <div className="bg-[#0a1128]/80 backdrop-blur-md border-b border-slate-800 sticky top-[65px] z-10">
+          <div className="flex items-center gap-3 p-3 px-5 overflow-x-auto whitespace-nowrap hide-scrollbar max-w-7xl mx-auto">
+             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-xs font-medium shadow-sm">
+               <LayoutGrid size={16} className="text-[#38bdf8]" />
+               <span>Genres <strong className="text-[#38bdf8] ml-1.5 text-sm">{genres.length}</strong></span>
              </div>
-             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-sm font-medium shadow-sm">
-               <CircleDot size={18} className="text-[#38bdf8]" />
-               <span>Channels <strong className="text-[#38bdf8] ml-2 text-lg">{totalChannels}</strong></span>
+             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-xs font-medium shadow-sm">
+               <CircleDot size={16} className="text-[#38bdf8]" />
+               <span>Channels <strong className="text-[#38bdf8] ml-1.5 text-sm">{totalChannels}</strong></span>
              </div>
-             <div className="flex items-center gap-3 px-5 py-2.5 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-sm font-medium shadow-sm">
-               <Check size={18} className="text-[#34d399]" />
-               <span>Selected <strong className="text-[#34d399] ml-2 text-lg">{selectedGenres.length}</strong></span>
+             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-xs font-medium shadow-sm">
+               <Check size={16} className="text-[#34d399]" />
+               <span>Selected <strong className="text-[#34d399] ml-1.5 text-sm">{selectedGenres.length}</strong></span>
              </div>
           </div>
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-6 lg:p-10 pb-56 lg:pb-36 overflow-y-auto w-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-6 mb-10">
-            <h2 className="text-lg lg:text-xl font-bold text-[#38bdf8] uppercase tracking-[0.2em] shrink-0">Genre Folders</h2>
+        <main className="flex-1 p-4 lg:p-8 pb-40 overflow-y-auto w-full max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="text-base font-bold text-[#38bdf8] uppercase tracking-[0.15em] shrink-0">Genre Folders</h2>
             <div className="h-px bg-gradient-to-r from-[#1e293b] to-transparent flex-1"></div>
           </div>
           
           {isFetchingMetadata ? (
-            <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-               <RefreshCw className="animate-spin mb-4" size={40} />
-               <p className="text-lg font-medium">Loading server metadata...</p>
+            <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+               <RefreshCw className="animate-spin mb-3" size={32} />
+               <p className="text-base font-medium">Loading server metadata...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {genres.map(genre => {
                 const isSelected = selectedGenres.includes(genre.id);
                 return (
@@ -610,18 +610,18 @@ export default function App() {
                           : [...prev, genre.id]
                       );
                     }}
-                    className={`group relative flex flex-col items-center justify-center p-8 lg:p-10 rounded-[32px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-2xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-xl'}`}
+                    className={`group relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-md'}`}
                   >
                      {isSelected && (
-                       <div className="absolute top-5 right-5 text-[#38bdf8] animate-in zoom-in duration-300">
-                         <CheckCircle2 size={26} className="fill-[#38bdf8]/20" />
+                       <div className="absolute top-4 right-4 text-[#38bdf8] animate-in zoom-in duration-300">
+                         <CheckCircle2 size={20} className="fill-[#38bdf8]/20" />
                        </div>
                      )}
-                     <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-lg shadow-blue-500/40 translate-y-[-4px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
-                       <Folder size={32} />
+                     <div className={`w-14 h-14 rounded-[16px] flex items-center justify-center mb-4 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-md shadow-blue-500/40 translate-y-[-2px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
+                       <Folder size={24} />
                      </div>
-                     <h3 className="text-xl font-bold text-slate-100 text-center mb-4 leading-tight">{genre.title}</h3>
-                     <div className={`px-6 py-2 rounded-full font-bold text-sm border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
+                     <h3 className="text-base font-bold text-slate-100 text-center mb-3 leading-tight">{genre.title}</h3>
+                     <div className={`px-4 py-1.5 rounded-full font-bold text-xs border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
                        {genre.count} Channels
                      </div>
                   </div>
@@ -632,25 +632,25 @@ export default function App() {
         </main>
 
         {/* Bottom Sticky Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-4 lg:p-6 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 lg:gap-6">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-3 lg:p-4 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
              <div className="text-slate-300 text-center sm:text-left">
-               <div className="text-base lg:text-xl"><strong className="text-[#38bdf8] text-xl lg:text-2xl px-1">{selectedGenres.length}</strong> genres selected</div>
-               <div className="text-slate-500 text-sm lg:text-base font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
+               <div className="text-sm"><strong className="text-[#38bdf8] text-lg px-1">{selectedGenres.length}</strong> genres selected</div>
+               <div className="text-slate-500 text-xs font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
              </div>
-             <div className="flex gap-3 lg:gap-4 w-full sm:w-auto">
+             <div className="flex gap-2.5 w-full sm:w-auto">
                <button 
                  onClick={() => setCurrentView('dashboard')}
-                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-3 lg:py-4 px-4 lg:px-10 rounded-xl transition-all shadow-xl shadow-emerald-500/20 text-base lg:text-lg"
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-[#34d399] hover:bg-[#10b981] text-[#064e3b] font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-500/20 text-sm"
                >
-                 <Save size={20} />
+                 <Save size={18} />
                  Save & Submit
                </button>
                <button 
                  onClick={() => setSelectedGenres([])}
-                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-3 lg:py-4 px-4 lg:px-10 rounded-xl transition-all shadow-xl shadow-orange-500/20 text-base lg:text-lg"
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-orange-500/20 text-sm"
                >
-                 <Trash2 size={20} />
+                 <Trash2 size={18} />
                  Reset
                </button>
              </div>
@@ -796,78 +796,78 @@ export default function App() {
         <main className="flex-1 p-6 lg:p-10 pb-24 max-w-7xl mx-auto w-full lg:grid lg:grid-cols-12 lg:gap-10 overflow-y-auto">
           {/* Add New Channel Card */}
           <div className="lg:col-span-5 mb-8 lg:mb-0">
-            <div className="bg-gradient-to-b from-[#1e293b] to-[#0f172a] rounded-[40px] p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 sticky top-0">
-              <div className="flex items-center gap-5 mb-10">
-                <div className="w-16 h-16 bg-[#2dd4bf] rounded-[24px] flex items-center justify-center text-slate-900 shadow-xl shadow-teal-500/20">
-                  <Plus size={32} strokeWidth={3} />
+            <div className="bg-gradient-to-b from-[#1e293b] to-[#0f172a] rounded-[32px] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 sticky top-4">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-[#2dd4bf] rounded-2xl flex items-center justify-center text-slate-900 shadow-xl shadow-teal-500/20">
+                  <Plus size={24} strokeWidth={3} />
                 </div>
-                <h2 className="text-3xl font-black text-white tracking-tight">New Channel</h2>
+                <h2 className="text-2xl font-black text-white tracking-tight">New Channel</h2>
               </div>
               
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    <Monitor size={14} className="text-blue-500" /> Name
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Monitor size={12} className="text-blue-500" /> Name
                   </label>
                   <input 
                     type="text" 
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
                     placeholder="Premium Sports HD"
-                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-600"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all font-bold placeholder:text-slate-600 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    <ImageIcon size={14} className="text-blue-500" /> Logo (URL)
+                <div className="space-y-1.5">
+                  <label className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <ImageIcon size={12} className="text-blue-500" /> Logo (URL)
                   </label>
                   <input 
                     type="text" 
                     value={logoUrl}
                     onChange={(e) => setLogoUrl(e.target.value)}
                     placeholder="https://imgur.com/logo.png"
-                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-xs"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    <LinkIcon size={14} className="text-blue-500" /> Stream URL
+                <div className="space-y-1.5">
+                  <label className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <LinkIcon size={12} className="text-blue-500" /> Stream URL
                   </label>
                   <input 
                     type="text" 
                     value={channelUrl}
                     onChange={(e) => setChannelUrl(e.target.value)}
                     placeholder="https://cdn.example.com/live.m3u8"
-                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                    className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-xs"
                   />
                 </div>
 
-                <div className="relative space-y-2">
-                  <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                    <Shield size={14} className="text-blue-500" /> DRM Security
+                <div className="relative space-y-1.5">
+                  <label className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Shield size={12} className="text-blue-500" /> DRM Security
                   </label>
                   <div 
-                    className="w-full bg-slate-900/50 border-2 border-blue-500/30 rounded-2xl px-6 py-4 text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-800 shadow-lg shadow-blue-500/5"
+                    className="w-full bg-slate-900/50 border-2 border-blue-500/30 rounded-xl px-4 py-3 text-white cursor-pointer flex justify-between items-center transition-all hover:bg-slate-800 shadow-lg shadow-blue-500/5 text-sm"
                     onClick={() => setIsDrmDropdownOpen(!isDrmDropdownOpen)}
                   >
                      <span className="font-bold">{drmType}</span>
                      <div className={`transition-transform duration-300 ${isDrmDropdownOpen ? 'rotate-180' : ''}`}>
-                       <ArrowDown size={18} />
+                       <ArrowDown size={16} />
                      </div>
                   </div>
                   
                   {isDrmDropdownOpen && (
-                    <div className="absolute top-[90px] left-0 right-0 bg-[#fff5f2] rounded-3xl p-3 z-30 shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute top-[75px] left-0 right-0 bg-[#fff5f2] rounded-2xl p-2 z-30 shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-in slide-in-from-top-2 duration-200">
                        {['No DRM', 'ClearKey', 'Widevine'].map((type) => (
                          <div 
                            key={type}
                            onClick={() => { setDrmType(type); setIsDrmDropdownOpen(false); }}
-                           className={`px-6 py-4 text-lg font-bold rounded-2xl cursor-pointer flex justify-between items-center transition-all ${drmType === type ? 'bg-orange-500 text-white' : 'text-slate-800 hover:bg-orange-50'}`}
+                           className={`px-4 py-2.5 text-sm font-bold rounded-xl cursor-pointer flex justify-between items-center transition-all ${drmType === type ? 'bg-orange-500 text-white' : 'text-slate-800 hover:bg-orange-50'}`}
                          >
                            {type}
-                           {drmType === type && <Check size={20} />}
+                           {drmType === type && <Check size={16} />}
                          </div>
                        ))}
                     </div>
@@ -875,21 +875,21 @@ export default function App() {
                 </div>
 
                 {drmType !== 'No DRM' && (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-4">
-                    <label className="px-1 text-slate-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                      <Key size={14} className="text-blue-500" /> DRM License Key
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-4">
+                    <label className="px-1 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                       <Key size={12} className="text-blue-500" /> DRM License Key
                     </label>
                     <input 
                       type="text" 
                       value={drmKey}
                       onChange={(e) => setDrmKey(e.target.value)}
                       placeholder="License server URL or ClearKey JSON"
-                      className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-2xl px-6 py-4 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-sm"
+                      className="w-full bg-slate-900/50 border-2 border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:outline-none focus:border-blue-500 transition-all font-mono text-xs"
                     />
                   </div>
                 )}
 
-                <div className="pt-6">
+                <div className="pt-4">
                   <button 
                      onClick={() => {
                        if (channelUrl) {
@@ -907,9 +907,9 @@ export default function App() {
                          alert('Channel URL is mandatory');
                        }
                      }}
-                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-full shadow-[0_15px_40px_rgba(79,70,229,0.4)] hover:shadow-[0_10px_25px_rgba(79,70,229,0.5)] active:scale-95 transition-all text-xl uppercase tracking-widest"
+                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3.5 rounded-2xl shadow-[0_15px_40px_rgba(79,70,229,0.4)] hover:shadow-[0_10px_25px_rgba(79,70,229,0.5)] active:scale-95 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-2"
                   >
-                    🚀 Register Channel
+                    <span>🚀 REGISTER CHANNEL</span>
                   </button>
                 </div>
               </div>
@@ -918,15 +918,15 @@ export default function App() {
 
           <div className="lg:col-span-7">
             {/* Your Channels Card */}
-            <div className="bg-[#111827] rounded-[48px] p-8 lg:p-12 shadow-2xl border border-slate-800/60 min-h-full">
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-blue-500/10 rounded-3xl flex items-center justify-center text-blue-500 shadow-inner">
-                    <List size={32} />
+            <div className="bg-[#111827] rounded-[32px] p-6 lg:p-8 shadow-2xl border border-slate-800/60 min-h-full">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
+                    <List size={24} />
                   </div>
                   <div>
-                    <h2 className="text-4xl font-black text-white leading-none">Library</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest mt-2">{channels.length} Total Registers</p>
+                    <h2 className="text-3xl font-black text-white leading-none">Library</h2>
+                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1.5">{channels.length} Total Registers</p>
                   </div>
                 </div>
               </div>
@@ -944,16 +944,22 @@ export default function App() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {channels.map(channel => (
-                    <div key={channel.id} className="group relative bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/50 rounded-3xl p-5 flex items-center justify-between transition-all hover:shadow-2xl hover:translate-y-[-4px]">
-                      <div className="flex items-center gap-5 truncate">
-                        <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-700 group-hover:border-blue-500/50 transition-colors">
-                          {channel.logo ? <img src={channel.logo} alt="" className="w-full h-full object-cover" /> : <Tv size={28} className="text-slate-600" />}
+                    <div key={channel.id} className="bg-transparent border border-slate-700/50 rounded-[20px] p-4 flex items-start justify-between transition-all hover:bg-slate-800/30">
+                      <div className="flex gap-4 items-start w-full min-w-0 pr-4">
+                        <div className="w-[72px] h-[72px] bg-slate-900 rounded-[14px] flex flex-col items-center justify-center overflow-hidden shrink-0 border border-slate-700">
+                          {channel.logo ? <img src={channel.logo} alt="" className="w-full h-full object-cover" /> : (
+                            <ImageIcon size={24} className="text-slate-500" />
+                          )}
                         </div>
-                        <div className="truncate pr-4">
-                          <div className="font-black text-white text-lg truncate group-hover:text-blue-400 transition-colors">{channel.name}</div>
-                          <div className="text-xs text-slate-500 font-mono truncate mt-1 bg-slate-950/50 px-2 py-1 rounded inline-block">{channel.url}</div>
-                          <div className="mt-2">
-                             <span className={`text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded ${channel.drmType !== 'No DRM' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' : 'bg-slate-700/30 text-slate-500'}`}>
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <div className="font-bold text-white text-base truncate">{channel.name}</div>
+                          <div className="flex flex-wrap gap-2">
+                             <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700 rounded px-2 py-0.5 truncate max-w-[150px] inline-block">
+                               {channel.url}
+                             </span>
+                          </div>
+                          <div>
+                             <span className="text-[10px] font-bold text-slate-400 bg-slate-800/80 rounded px-2 py-0.5 uppercase tracking-wider inline-block">
                                {channel.drmType}
                              </span>
                           </div>
@@ -961,9 +967,9 @@ export default function App() {
                       </div>
                       <button 
                         onClick={() => setChannels(prev => prev.filter(c => c.id !== channel.id))}
-                        className="opacity-0 group-hover:opacity-100 absolute -top-3 -right-3 bg-red-500 text-white p-2.5 rounded-full hover:bg-red-600 transition-all shadow-xl active:scale-90"
+                        className="text-slate-500 hover:text-red-400 p-2 rounded-xl hover:bg-red-400/10 transition-colors shrink-0"
                       >
-                        <X size={18} strokeWidth={3} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   ))}
@@ -1093,16 +1099,6 @@ export default function App() {
                     Manage Token
                   </button>
                 </div>
-
-                {/* Dev Simulation Control */}
-                {!isBlocked && (
-                  <button 
-                    onClick={() => setActiveIps(prev => [...prev, { id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }])}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs py-2.5 rounded-xl transition-colors duration-200 border border-slate-700"
-                  >
-                    [Dev] Simulate Token Use (Device++)
-                  </button>
-                )}
               </div>
             )}
           </div>
