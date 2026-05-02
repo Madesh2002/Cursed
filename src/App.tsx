@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings, Folder, Circle } from 'lucide-react';
+import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings, Folder, Circle, Youtube, Film, Search } from 'lucide-react';
 
 export default function App() {
   const [hasToken, setHasToken] = useState(() => !!localStorage.getItem('vplink_token'));
@@ -80,6 +80,8 @@ export default function App() {
   const [genres, setGenres] = useState<any[]>([]);
   const [totalChannels, setTotalChannels] = useState(0);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [activeGenreModal, setActiveGenreModal] = useState<any | null>(null);
+  const [channelSearchQuery, setChannelSearchQuery] = useState('');
 
   useEffect(() => {
     if (currentView === 'customise') {
@@ -601,11 +603,11 @@ export default function App() {
                <CircleDot size={16} className={activeTab === 'channels' ? 'text-[#38bdf8]' : ''} />
                <span>Channels <strong className={`${activeTab === 'channels' ? 'text-[#38bdf8]' : 'text-slate-400'} ml-1.5 text-sm`}>{totalChannels}</strong></span>
              </div>
-             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-xs font-medium shadow-sm ml-auto">
-               <Check size={16} className="text-[#34d399]" />
-               <span>Selected <strong className="text-[#34d399] ml-1.5 text-sm">{selectedGenres.length + selectedChannels.length}</strong></span>
-             </div>
-          </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-xs font-medium shadow-sm ml-auto">
+                <Check size={16} className="text-[#34d399]" />
+                <span>Selected <strong className="text-[#34d399] ml-1.5 text-sm">{selectedChannels.length}</strong></span>
+              </div>
+           </div>
         </div>
 
         {/* Content */}
@@ -626,30 +628,25 @@ export default function App() {
             activeTab === 'genres' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {genres.map(genre => {
-                  const isSelected = selectedGenres.includes(genre.id);
                   return (
                     <div 
                       key={genre.id}
                       onClick={() => {
-                        setSelectedGenres(prev => 
-                          prev.includes(genre.id) 
-                            ? prev.filter(id => id !== genre.id)
-                            : [...prev, genre.id]
-                        );
+                        setActiveGenreModal(genre);
+                        setChannelSearchQuery('');
                       }}
-                      className={`group relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-md'}`}
+                      className={`group relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all duration-300 cursor-pointer bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-md`}
                     >
-                       {isSelected && (
-                         <div className="absolute top-4 right-4 text-[#38bdf8] animate-in zoom-in duration-300">
-                           <CheckCircle2 size={20} className="fill-[#38bdf8]/20" />
-                         </div>
-                       )}
-                       <div className={`w-14 h-14 rounded-[16px] flex items-center justify-center mb-4 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-md shadow-blue-500/40 translate-y-[-2px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
-                         <Folder size={24} />
+                       <div className={`w-14 h-14 rounded-[16px] flex items-center justify-center mb-4 transition-all duration-300 bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110`}>
+                         {genre.title === 'Business News' ? <Activity size={24} /> : 
+                          genre.title === 'Entertainment' ? <Youtube size={24} /> :
+                          genre.title === 'Infotainment' ? <Info size={24} /> :
+                          genre.title === 'Movies' ? <Film size={24} /> :
+                          <Folder size={24} />}
                        </div>
                        <h3 className="text-base font-bold text-slate-100 text-center mb-3 leading-tight">{genre.title}</h3>
-                       <div className={`px-4 py-1.5 rounded-full font-bold text-xs border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
-                         {genre.count} Channels
+                       <div className={`px-4 py-1.5 rounded-full font-bold text-xs border transition-colors bg-[#1e293b] text-slate-400 border-slate-700`}>
+                         {genre.count} ch
                        </div>
                     </div>
                   );
@@ -694,11 +691,106 @@ export default function App() {
           )}
         </main>
 
+        {activeGenreModal && (
+          <div className="fixed inset-0 z-[60] flex flex-col bg-[#070b19]/40 backdrop-blur-3xl animate-in fade-in duration-200">
+            <div className="flex-1 overflow-hidden flex flex-col max-w-3xl w-full mx-auto bg-[#070b19] shadow-2xl">
+              <div className="flex items-center justify-between p-4 bg-[#0a1128] border-b border-slate-800">
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-bold text-white leading-tight break-words max-w-[150px] sm:max-w-xs">{activeGenreModal.title}</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1e293b] text-[#38bdf8] whitespace-nowrap text-center flex flex-col leading-tight border border-[#38bdf8]/30">
+                    <span>{activeGenreModal.count}</span>
+                    <span>ch</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const allChannelIds = activeGenreModal.channels.map((c: any) => c.id);
+                      const allSelected = allChannelIds.every((id: string) => selectedChannels.includes(id));
+                      if (allSelected) {
+                         setSelectedChannels(prev => prev.filter(id => !allChannelIds.includes(id)));
+                      } else {
+                         setSelectedChannels(prev => {
+                           const newSelected = [...prev];
+                           allChannelIds.forEach((id: string) => {
+                             if (!newSelected.includes(id)) newSelected.push(id);
+                           });
+                           return newSelected;
+                         });
+                      }
+                    }}
+                    className="bg-[#38bdf8] text-white px-3 py-1.5 rounded text-sm font-bold shadow-md hover:bg-[#0284c7] transition-all whitespace-nowrap"
+                  >
+                    Select All
+                  </button>
+                  <button 
+                    onClick={() => setActiveGenreModal(null)}
+                    className="bg-[#f59e0b] text-white px-3 py-1.5 rounded text-sm font-bold flex items-center gap-1 shadow-md hover:bg-[#d97706] transition-all whitespace-nowrap"
+                  >
+                    <X size={16} /> Close
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4 border-b border-slate-800 bg-[#0a1128]/50">
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Search channels..." 
+                    value={channelSearchQuery}
+                    onChange={(e) => setChannelSearchQuery(e.target.value)}
+                    className="w-full bg-[#111827] border border-slate-700 rounded-xl px-4 py-3 pl-10 text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] transition-colors"
+                  />
+                  <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-[#070b19]">
+                <div className="flex flex-col gap-2">
+                  {(activeGenreModal.channels || []).filter((c: any) => (c.name || c.id || '').toLowerCase().includes(channelSearchQuery.toLowerCase())).map((channel: any) => {
+                    const isSelected = selectedChannels.includes(channel.id);
+                    return (
+                      <div 
+                        key={channel.id}
+                        onClick={() => {
+                          setSelectedChannels(prev => 
+                            prev.includes(channel.id) 
+                              ? prev.filter(id => id !== channel.id)
+                              : [...prev, channel.id]
+                          );
+                        }}
+                        className={`flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-colors ${isSelected ? 'bg-[#1a2538] border border-[#38bdf8]/30' : 'hover:bg-[#111827]'}`}
+                      >
+                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-slate-700">
+                           {channel.logo ? <img src={channel.logo} alt={channel.name} className="w-full h-full object-contain p-1" /> : <Tv size={20} className="text-slate-400" />}
+                         </div>
+                         <div className="flex-1 min-w-0 font-bold text-slate-200 truncate">
+                           {channel.name || channel.id}
+                         </div>
+                         <div className="shrink-0 p-2">
+                           <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#38bdf8] border-[#38bdf8]' : 'border-slate-600 bg-[#111827]'}`}>
+                             {isSelected && <Check size={16} className="text-white" />}
+                           </div>
+                         </div>
+                      </div>
+                    )
+                  })}
+                  {activeGenreModal.channels && activeGenreModal.channels.filter((c: any) => (c.name || c.id || '').toLowerCase().includes(channelSearchQuery.toLowerCase())).length === 0 && (
+                    <div className="text-center p-8 text-slate-500">
+                      No channels found matching "{channelSearchQuery}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bottom Sticky Action Bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-3 lg:p-4 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
              <div className="text-slate-300 text-center sm:text-left">
-               <div className="text-sm"><strong className="text-[#38bdf8] text-lg px-1">{selectedGenres.length + selectedChannels.length}</strong> items selected</div>
+               <div className="text-sm"><strong className="text-[#38bdf8] text-lg px-1">{selectedChannels.length}</strong> items selected</div>
                <div className="text-slate-500 text-xs font-medium">Out of <strong className="text-slate-300">{genres.length}</strong> genres and <strong className="text-slate-300">{totalChannels}</strong> channels</div>
              </div>
              <div className="flex gap-2.5 w-full sm:w-auto">
@@ -1121,7 +1213,7 @@ export default function App() {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center`}>
+                  <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 hover:bg-[#1e293b] hover:border-slate-600 hover:-translate-y-1 hover:shadow-lg`}>
                     <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Status</span>
                     {isBlocked ? (
                       <span className="text-red-500 font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">IP BLOCKED</span>
@@ -1131,7 +1223,7 @@ export default function App() {
                       <span className="text-emerald-400 font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">ACTIVE</span>
                     )}
                   </div>
-                  <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
+                  <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-300 hover:bg-[#1e293b] hover:border-slate-600 hover:-translate-y-1 hover:shadow-lg`}>
                     {hasToken && !isBlocked && (
                       <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-60">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping absolute"></div>
@@ -1141,18 +1233,18 @@ export default function App() {
                     <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Active Devices</span>
                     <span className={`${activeDevices > 4 ? 'text-red-500' : 'text-emerald-400'} font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-300`}>{activeDevices} / 4</span>
                   </div>
-                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center">
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 hover:bg-[#1e293b] hover:border-slate-600 hover:-translate-y-1 hover:shadow-lg">
                     <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Remaining</span>
                     <div className="flex flex-col items-center leading-tight">
                       <span className="text-slate-200 font-bold text-sm sm:text-lg">{isExpired ? 'Expired' : `${remainingDays}d`}</span>
                       <span className="text-slate-200 font-mono text-xs sm:text-base">{!isExpired && remainingTimeStr}</span>
                     </div>
                   </div>
-                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center">
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 hover:bg-[#1e293b] hover:border-slate-600 hover:-translate-y-1 hover:shadow-lg">
                     <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Expiry Date</span>
                     <div className="flex flex-col items-center leading-tight gap-0.5">
-                      <span className="text-slate-200 font-bold text-[13px] sm:text-base">{isExpired ? 'Expired' : expiryFormatted.date}</span>
-                      <span className="text-slate-400 text-[11px] sm:text-sm">{!isExpired && expiryFormatted.time}</span>
+                      <span className="text-slate-200 font-bold text-[13px] sm:text-base">{expiryFormatted.date}</span>
+                      <span className="text-slate-400 text-[11px] sm:text-sm">{expiryFormatted.time}</span>
                     </div>
                   </div>
                 </div>
