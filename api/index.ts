@@ -299,6 +299,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         const channels = JSON.parse(channelsRaw);
         
         const requestedGenres = req.query.genres ? (req.query.genres as string).split(',') : null;
+        const requestedChannels = req.query.channels ? (req.query.channels as string).split(',') : null;
         
         // Count total channels
         const totalChannels = channels.length;
@@ -306,7 +307,17 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         let m3u = ['#EXTM3U'];
 
         channels.forEach((ch: any) => {
-             if (requestedGenres && !requestedGenres.includes(ch.group)) {
+             let include = false;
+             if (requestedGenres && requestedGenres.includes(ch.group || 'Other')) {
+                 include = true;
+             }
+             if (requestedChannels && requestedChannels.includes(String(ch.channel_id))) {
+                 include = true;
+             }
+             if (!requestedGenres && !requestedChannels) {
+                 include = true;
+             }
+             if (!include) {
                  return;
              }
              if (ch.extinf) {
@@ -337,18 +348,36 @@ app.get('/api/metadata', async (req, res) => {
         const channels = JSON.parse(channelsRaw);
         
         const genreCounts: Record<string, number> = {};
+        const genreChannels: Record<string, any[]> = {};
         const genresSet = new Set<string>();
         
         channels.forEach((ch: any) => {
            let group = ch.group || 'Other';
            genresSet.add(group);
            genreCounts[group] = (genreCounts[group] || 0) + 1;
+           if (!genreChannels[group]) genreChannels[group] = [];
+           
+           let name = ch.channel_id;
+           let logo = '';
+           if (ch.extinf) {
+               const nameMatch = ch.extinf.match(/,(.+)$/);
+               if (nameMatch) name = nameMatch[1];
+               const logoMatch = ch.extinf.match(/tvg-logo="([^"]+)"/);
+               if (logoMatch) logo = logoMatch[1];
+           }
+           
+           genreChannels[group].push({
+               id: ch.channel_id,
+               name,
+               logo
+           });
         });
 
         const formattedGenres = Array.from(genresSet).map(g => ({
             id: g,
             title: g,
-            count: genreCounts[g] || 0
+            count: genreCounts[g] || 0,
+            channels: genreChannels[g] || []
         }));
         
         res.json({ genres: formattedGenres, totalChannels: channels.length });

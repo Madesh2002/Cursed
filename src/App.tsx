@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings, Folder } from 'lucide-react';
+import { Menu, AlertTriangle, Copy, X, Calendar, Clock, Activity, Globe, ArrowUp, ArrowDown, Key, Monitor, Image as ImageIcon, Link as LinkIcon, Shield, User, Plus, List, Tv, RefreshCw, CheckCircle2, LayoutGrid, CircleDot, Check, PlaySquare, Info, LayoutTemplate, Save, Trash2, Settings, Folder, Circle } from 'lucide-react';
 
 export default function App() {
   const [hasToken, setHasToken] = useState(() => !!localStorage.getItem('vplink_token'));
@@ -19,6 +19,7 @@ export default function App() {
   const [verifiedUsername, setVerifiedUsername] = useState(() => localStorage.getItem('vplink_username') || '');
   
   const [token, setToken] = useState<string>(() => localStorage.getItem('vplink_token') || '');
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
   const [expiryTime, setExpiryTime] = useState<number | null>(() => {
     const saved = localStorage.getItem('vplink_expiry');
     return saved ? parseInt(saved, 10) : null;
@@ -66,6 +67,8 @@ export default function App() {
 
   // Customise State
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'genres'|'channels'>('genres');
   
   // Admin State
   const [config, setConfig] = useState<any>({
@@ -282,21 +285,28 @@ export default function App() {
   };
 
   const basePath = typeof window !== 'undefined' ? window.location.origin + window.location.pathname.replace(/\/$/, '') : '';
-  const genresQuery = selectedGenres.length > 0 ? `?genres=${selectedGenres.join(',')}` : '';
-  const generatedUrl = token ? `${basePath}/${token}/playlist.m3u${genresQuery}` : '';
+  const searchParams = new URLSearchParams();
+  if (selectedGenres.length > 0) searchParams.append('genres', selectedGenres.join(','));
+  if (selectedChannels.length > 0) searchParams.append('channels', selectedChannels.join(','));
+  const queryStr = searchParams.toString() ? `?${searchParams.toString()}` : '';
+  const generatedUrl = token ? `${basePath}/${token}/playlist.m3u${queryStr}` : '';
 
   const handleGenerate = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let res = '';
-    for (let i = 0; i < 8; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-    setToken(res);
-    setActiveIps([{ id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }]);
-    setIsBlocked(false);
-    setHasToken(true);
-    // 2 minutes from now
-    setExpiryTime(Date.now() + 2 * 60 * 1000);
-    setVerifiedUsername('');
-    setVerificationUsername('');
+    setIsGeneratingToken(true);
+    setTimeout(() => {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let res = '';
+        for (let i = 0; i < 8; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        setToken(res);
+        setActiveIps([{ id: Math.random().toString(36).substring(7), ip: generateMockIp(), timestamp: Date.now() }]);
+        setIsBlocked(false);
+        setHasToken(true);
+        // 2 minutes from now
+        setExpiryTime(Date.now() + 2 * 60 * 1000);
+        setVerifiedUsername('');
+        setVerificationUsername('');
+        setIsGeneratingToken(false);
+    }, 1500);
   };
 
   const [copied, setCopied] = useState(false);
@@ -411,9 +421,17 @@ export default function App() {
                     <p className="text-slate-500 mb-6 text-sm font-medium text-center max-w-[200px]">No active token found. Generate one to manage IPs.</p>
                     <button 
                       onClick={handleGenerate}
-                      className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-10 rounded-xl transition-all shadow-xl shadow-blue-500/20 active:scale-95"
+                      disabled={isGeneratingToken}
+                      className={`bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-10 rounded-xl transition-all shadow-xl shadow-blue-500/20 active:scale-95 flex items-center gap-2 ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                      Generate Token
+                      {isGeneratingToken ? (
+                        <>
+                          <RefreshCw className="animate-spin" size={18} />
+                          Generating...
+                        </>
+                      ) : (
+                        'Generate Token'
+                      )}
                     </button>
                   </div>
                 ) : (
@@ -569,17 +587,23 @@ export default function App() {
         {/* Badges Bar */}
         <div className="bg-[#0a1128]/80 backdrop-blur-md border-b border-slate-800 sticky top-[65px] z-10">
           <div className="flex items-center gap-3 p-3 px-5 overflow-x-auto whitespace-nowrap hide-scrollbar max-w-7xl mx-auto">
-             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-xs font-medium shadow-sm">
-               <LayoutGrid size={16} className="text-[#38bdf8]" />
-               <span>Genres <strong className="text-[#38bdf8] ml-1.5 text-sm">{genres.length}</strong></span>
+             <div 
+               onClick={() => setActiveTab('genres')}
+               className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-colors ${activeTab === 'genres' ? 'border-[#38bdf8]/50 bg-[#38bdf8]/10 text-white' : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:text-slate-200'} text-xs font-medium shadow-sm`}
+             >
+               <LayoutGrid size={16} className={activeTab === 'genres' ? 'text-[#38bdf8]' : ''} />
+               <span>Genres <strong className={`${activeTab === 'genres' ? 'text-[#38bdf8]' : 'text-slate-400'} ml-1.5 text-sm`}>{genres.length}</strong></span>
              </div>
-             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-700 bg-slate-800/50 text-slate-200 text-xs font-medium shadow-sm">
-               <CircleDot size={16} className="text-[#38bdf8]" />
-               <span>Channels <strong className="text-[#38bdf8] ml-1.5 text-sm">{totalChannels}</strong></span>
+             <div 
+               onClick={() => setActiveTab('channels')}
+               className={`flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-colors ${activeTab === 'channels' ? 'border-[#38bdf8]/50 bg-[#38bdf8]/10 text-white' : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:text-slate-200'} text-xs font-medium shadow-sm`}
+             >
+               <CircleDot size={16} className={activeTab === 'channels' ? 'text-[#38bdf8]' : ''} />
+               <span>Channels <strong className={`${activeTab === 'channels' ? 'text-[#38bdf8]' : 'text-slate-400'} ml-1.5 text-sm`}>{totalChannels}</strong></span>
              </div>
-             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-xs font-medium shadow-sm">
+             <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#34d399]/30 bg-[#34d399]/10 text-slate-100 text-xs font-medium shadow-sm ml-auto">
                <Check size={16} className="text-[#34d399]" />
-               <span>Selected <strong className="text-[#34d399] ml-1.5 text-sm">{selectedGenres.length}</strong></span>
+               <span>Selected <strong className="text-[#34d399] ml-1.5 text-sm">{selectedGenres.length + selectedChannels.length}</strong></span>
              </div>
           </div>
         </div>
@@ -587,7 +611,9 @@ export default function App() {
         {/* Content */}
         <main className="flex-1 p-4 lg:p-8 pb-40 overflow-y-auto w-full max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
-            <h2 className="text-base font-bold text-[#38bdf8] uppercase tracking-[0.15em] shrink-0">Genre Folders</h2>
+            <h2 className="text-base font-bold text-[#38bdf8] uppercase tracking-[0.15em] shrink-0">
+               {activeTab === 'genres' ? 'Genre Folders' : 'All Channels'}
+            </h2>
             <div className="h-px bg-gradient-to-r from-[#1e293b] to-transparent flex-1"></div>
           </div>
           
@@ -597,37 +623,74 @@ export default function App() {
                <p className="text-base font-medium">Loading server metadata...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {genres.map(genre => {
-                const isSelected = selectedGenres.includes(genre.id);
-                return (
-                  <div 
-                    key={genre.id}
-                    onClick={() => {
-                      setSelectedGenres(prev => 
-                        prev.includes(genre.id) 
-                          ? prev.filter(id => id !== genre.id)
-                          : [...prev, genre.id]
-                      );
-                    }}
-                    className={`group relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-md'}`}
-                  >
-                     {isSelected && (
-                       <div className="absolute top-4 right-4 text-[#38bdf8] animate-in zoom-in duration-300">
-                         <CheckCircle2 size={20} className="fill-[#38bdf8]/20" />
+            activeTab === 'genres' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {genres.map(genre => {
+                  const isSelected = selectedGenres.includes(genre.id);
+                  return (
+                    <div 
+                      key={genre.id}
+                      onClick={() => {
+                        setSelectedGenres(prev => 
+                          prev.includes(genre.id) 
+                            ? prev.filter(id => id !== genre.id)
+                            : [...prev, genre.id]
+                        );
+                      }}
+                      className={`group relative flex flex-col items-center justify-center p-6 rounded-[24px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-xl shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40 shadow-md'}`}
+                    >
+                       {isSelected && (
+                         <div className="absolute top-4 right-4 text-[#38bdf8] animate-in zoom-in duration-300">
+                           <CheckCircle2 size={20} className="fill-[#38bdf8]/20" />
+                         </div>
+                       )}
+                       <div className={`w-14 h-14 rounded-[16px] flex items-center justify-center mb-4 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-md shadow-blue-500/40 translate-y-[-2px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
+                         <Folder size={24} />
                        </div>
-                     )}
-                     <div className={`w-14 h-14 rounded-[16px] flex items-center justify-center mb-4 transition-all duration-300 ${isSelected ? 'bg-[#38bdf8] text-white shadow-md shadow-blue-500/40 translate-y-[-2px]' : 'bg-[#1e293b] text-[#38bdf8] shadow-inner group-hover:scale-110'}`}>
-                       <Folder size={24} />
-                     </div>
-                     <h3 className="text-base font-bold text-slate-100 text-center mb-3 leading-tight">{genre.title}</h3>
-                     <div className={`px-4 py-1.5 rounded-full font-bold text-xs border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
-                       {genre.count} Channels
-                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                       <h3 className="text-base font-bold text-slate-100 text-center mb-3 leading-tight">{genre.title}</h3>
+                       <div className={`px-4 py-1.5 rounded-full font-bold text-xs border transition-colors ${isSelected ? 'bg-[#38bdf8]/10 text-[#38bdf8] border-[#38bdf8]/30' : 'bg-[#1e293b] text-slate-400 border-slate-700'}`}>
+                         {genre.count} Channels
+                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {genres.flatMap(g => g.channels || []).map((channel: any) => {
+                  const isSelected = selectedChannels.includes(channel.id);
+                  return (
+                    <div 
+                      key={channel.id}
+                      onClick={() => {
+                        setSelectedChannels(prev => 
+                          prev.includes(channel.id) 
+                            ? prev.filter(id => id !== channel.id)
+                            : [...prev, channel.id]
+                        );
+                      }}
+                      className={`group relative flex items-center gap-4 p-4 rounded-[20px] border transition-all duration-300 cursor-pointer ${isSelected ? 'bg-[#1a2538] border-[#38bdf8] shadow-md shadow-blue-500/10' : 'bg-[#111827] border-slate-800 hover:border-slate-600 hover:bg-[#1a2538]/40'}`}
+                    >
+                       <div className={`w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 overflow-hidden border ${isSelected ? 'border-[#38bdf8]/50' : 'border-slate-700'}`}>
+                         {channel.logo ? <img src={channel.logo} alt={channel.name} className="w-full h-full object-cover" /> : <Tv size={20} className={isSelected ? 'text-[#38bdf8]' : 'text-slate-500'} />}
+                       </div>
+                       <div className="flex-1 min-w-0 pr-6">
+                         <h3 className="text-sm font-bold text-slate-100 truncate">{channel.name || channel.id}</h3>
+                       </div>
+                       {isSelected ? (
+                         <div className="absolute right-4 text-[#38bdf8] animate-in zoom-in duration-200">
+                           <CheckCircle2 size={18} className="fill-[#38bdf8]/20" />
+                         </div>
+                       ) : (
+                         <div className="absolute right-4 text-slate-600 group-hover:text-slate-400 transition-colors">
+                           <Circle size={18} />
+                         </div>
+                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
         </main>
 
@@ -635,8 +698,8 @@ export default function App() {
         <div className="fixed bottom-0 left-0 right-0 bg-[#0a1128]/95 backdrop-blur-xl border-t border-slate-800 p-3 lg:p-4 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
              <div className="text-slate-300 text-center sm:text-left">
-               <div className="text-sm"><strong className="text-[#38bdf8] text-lg px-1">{selectedGenres.length}</strong> genres selected</div>
-               <div className="text-slate-500 text-xs font-medium">Out of total <strong className="text-slate-300">{genres.length}</strong> available genres</div>
+               <div className="text-sm"><strong className="text-[#38bdf8] text-lg px-1">{selectedGenres.length + selectedChannels.length}</strong> items selected</div>
+               <div className="text-slate-500 text-xs font-medium">Out of <strong className="text-slate-300">{genres.length}</strong> genres and <strong className="text-slate-300">{totalChannels}</strong> channels</div>
              </div>
              <div className="flex gap-2.5 w-full sm:w-auto">
                <button 
@@ -647,7 +710,7 @@ export default function App() {
                  Save & Submit
                </button>
                <button 
-                 onClick={() => setSelectedGenres([])}
+                 onClick={() => { setSelectedGenres([]); setSelectedChannels([]); }}
                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-orange-500/20 text-sm"
                >
                  <Trash2 size={18} />
@@ -663,13 +726,13 @@ export default function App() {
   if (currentView === 'contact-us') {
     return (
       <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
-        <header className="flex items-center justify-between p-6 lg:p-10 max-w-7xl mx-auto w-full">
-           <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter">Get In Touch</h1>
+        <header className="flex items-center justify-between p-5 lg:p-8 max-w-7xl mx-auto w-full">
+           <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tighter">Get In Touch</h1>
            <button 
             onClick={() => setCurrentView('dashboard')}
-            className="p-4 bg-slate-800/50 hover:bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all border border-slate-700 shadow-xl"
+            className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all border border-slate-700 shadow-xl"
           >
-            <X size={32} />
+            <X size={24} />
           </button>
         </header>
 
@@ -695,25 +758,25 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-[#111827] to-[#0a1128] rounded-[48px] p-10 lg:p-16 shadow-[0_30px_100px_rgba(0,0,0,0.6)] border border-slate-800/50 text-center relative overflow-hidden group">
+            <div className="bg-gradient-to-br from-[#111827] to-[#0a1128] rounded-[24px] lg:rounded-[36px] p-6 lg:p-12 shadow-[0_10px_30px_rgba(0,0,0,0.4)] border border-slate-800/50 text-center relative overflow-hidden group max-w-sm lg:max-w-lg mx-auto w-full">
                <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px] group-hover:bg-indigo-600/20 transition-all duration-700"></div>
                
                <div className="relative z-10">
-                 <div className="w-24 h-24 bg-[#0088cc]/10 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl border border-[#0088cc]/20 group-hover:scale-110 transition-transform duration-500">
-                    <svg className="w-12 h-12 text-[#0088cc]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                 <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[#0088cc]/10 rounded-[18px] lg:rounded-[24px] flex items-center justify-center mx-auto mb-5 lg:mb-6 shadow-xl border border-[#0088cc]/20 group-hover:scale-110 transition-transform duration-500">
+                    <svg className="w-8 h-8 lg:w-10 lg:h-10 text-[#0088cc]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
                  </div>
-                 <h2 className="text-3xl lg:text-4xl font-black text-white mb-4 tracking-tight">Our Telegram Channel</h2>
-                 <p className="text-slate-400 text-lg mb-10 max-w-sm mx-auto leading-relaxed">
+                 <h2 className="text-xl lg:text-3xl font-bold text-white mb-2 lg:mb-3 tracking-tight">Our Telegram Channel</h2>
+                 <p className="text-slate-400 text-[13px] lg:text-base mb-6 lg:mb-8 max-w-[260px] sm:max-w-xs mx-auto leading-relaxed">
                     Join our vibrant community for instant assistance, feedback sessions, and exclusive announcements.
                  </p>
                  <a 
                    href="https://t.me/xocietylive" 
                    target="_blank" 
                    rel="noopener noreferrer"
-                   className="w-full inline-flex font-black justify-center items-center gap-4 bg-[#0088cc] hover:bg-[#0077b3] text-white py-5 rounded-2xl transition-all shadow-[0_20px_50px_rgba(0,136,204,0.3)] hover:shadow-[0_10px_30px_rgba(0,136,204,0.4)] text-xl active:scale-95 group uppercase tracking-widest"
+                   className="w-full inline-flex font-bold justify-center items-center gap-2.5 lg:gap-3 bg-[#0088cc] hover:bg-[#0077b3] text-white py-3.5 lg:py-4 rounded-xl transition-all shadow-[0_10px_30px_rgba(0,136,204,0.3)] hover:shadow-[0_5px_20px_rgba(0,136,204,0.4)] text-[13px] lg:text-lg active:scale-95 group uppercase tracking-widest"
                  >
                    Open Community
-                   <Globe size={24} className="group-hover:rotate-12 transition-transform" />
+                   <Globe size={18} className="lg:w-[20px] lg:h-[20px] group-hover:rotate-12 transition-transform" />
                  </a>
                </div>
             </div>
@@ -986,16 +1049,18 @@ export default function App() {
     <div className="min-h-screen bg-[#070b19] text-slate-200 font-sans relative overflow-x-hidden">
       {/* Header */}
       <header className="flex justify-between items-center py-6 px-4 relative max-w-7xl mx-auto w-full">
-        <div className="text-center lg:text-left">
-          <h1 className="text-3xl font-bold text-indigo-400 tracking-tight">SECRET SOCIETY</h1>
-          <p className="text-slate-400 text-sm mt-1">Your Personal Game File</p>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-indigo-400 tracking-tight text-center">SECRET SOCIETY</h1>
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 text-center">Your Personal Cypher File</p>
         </div>
-        <button 
-          onClick={() => setIsMenuOpen(true)}
-          className="p-2 border border-slate-700 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors"
-        >
-          <Menu size={24} className="text-slate-300" />
-        </button>
+        {hasToken && (
+          <button 
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2 border border-slate-700 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors absolute right-4 top-6 z-10"
+          >
+            <Menu size={24} className="text-slate-300" />
+          </button>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -1005,96 +1070,105 @@ export default function App() {
             {!hasToken ? (
               /* Generate Token State */
               <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-10 mt-4 shadow-xl">
-                <h2 className="text-2xl font-bold text-white mb-3">Create Your Game File</h2>
+                <h2 className="text-2xl font-bold text-white mb-3">Create Your Cypher File</h2>
                 <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                  Generate your Personal Game File URL & Start Playing in Virtual World.
+                  Generate your Personal Cypher File URL & Start Playing in Virtual World.
                 </p>
                 <button 
                   onClick={handleGenerate}
-                  className="w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors duration-200 text-lg"
+                  disabled={isGeneratingToken}
+                  className={`w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors duration-200 text-lg ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <AlertTriangle size={20} />
-                  Generate Game Token
+                  {isGeneratingToken ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={20} />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={20} />
+                      Generate Cypher Token
+                    </>
+                  )}
                 </button>
               </div>
             ) : (
               /* Dashboard State */
-              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-4 shadow-xl space-y-6">
+              <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 sm:p-8 mt-4 shadow-xl space-y-5">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6 text-center md:text-left">Your Game File Dashboard</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 lg:mb-6">Your Cypher File Dashboard</h2>
                   
                   <div className="space-y-4">
-                    <div className="font-mono text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-center">
+                    <div className="font-mono text-xs sm:text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-left">
                       {generatedUrl}
                     </div>
 
                     <button 
                       onClick={handleCopy}
-                      className="w-full px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-lg shadow-lg shadow-blue-500/20"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-base shadow-lg shadow-blue-500/20"
                     >
-                      {copied ? <Check size={20} /> : <Copy size={20} />}
-                      {copied ? 'Copied to Clipboard!' : 'Copy Playlist URL'}
+                      {copied ? <Check size={18} /> : <Copy size={18} />}
+                      {copied ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-yellow-500/10 border border-yellow-600/30 rounded-xl p-5">
-                  <p className="text-yellow-500 text-sm md:text-base leading-relaxed flex gap-3">
-                    <AlertTriangle size={24} className="shrink-0" />
-                    <span><span className="font-bold">Warning:</span> Only 4 devices are allowed. Sharing your file URL publicly will result in your IP being blocked.</span>
+                <div className="bg-yellow-500/10 border border-yellow-600/30 rounded-xl p-4">
+                  <p className="text-yellow-500 text-[13px] sm:text-sm leading-relaxed flex gap-2.5">
+                    <span><strong className="font-bold">Warning:</strong> Only 4 devices are allowed. Sharing your file URL publicly will result in your IP being blocked.</span>
                   </p>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-5 flex flex-col items-center justify-center text-center`}>
-                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Status</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className={`bg-[#151f32] border ${isBlocked ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center`}>
+                    <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Status</span>
                     {isBlocked ? (
-                      <span className="text-red-500 font-bold text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">IP BLOCKED</span>
+                      <span className="text-red-500 font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">IP BLOCKED</span>
                     ) : isExpired ? (
-                      <span className="text-red-500 font-bold text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">EXPIRED</span>
+                      <span className="text-orange-500 font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]">EXPIRED</span>
                     ) : (
-                      <span className="text-emerald-400 font-bold text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">ACTIVE</span>
+                      <span className="text-emerald-400 font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">ACTIVE</span>
                     )}
                   </div>
-                  <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
+                  <div className={`bg-[#151f32] border ${activeDevices > 4 ? 'border-red-500/50' : 'border-slate-800'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center relative overflow-hidden`}>
                     {hasToken && !isBlocked && (
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-60">
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-60">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping absolute"></div>
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full relative"></div>
                       </div>
                     )}
-                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Active Devices</span>
-                    <span className={`${activeDevices > 4 ? 'text-red-500' : 'text-emerald-400'} font-bold text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-300`}>{activeDevices} / 4</span>
+                    <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Active Devices</span>
+                    <span className={`${activeDevices > 4 ? 'text-red-500' : 'text-emerald-400'} font-bold text-base sm:text-xl drop-shadow-[0_0_8px_rgba(52,211,153,0.4)] transition-all duration-300`}>{activeDevices} / 4</span>
                   </div>
-                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Remaining</span>
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center">
+                    <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Remaining</span>
                     <div className="flex flex-col items-center leading-tight">
-                      <span className="text-white font-semibold text-lg">{remainingDays}d</span>
-                      <span className="text-white font-mono text-base">{remainingTimeStr}</span>
+                      <span className="text-slate-200 font-bold text-sm sm:text-lg">{isExpired ? 'Expired' : `${remainingDays}d`}</span>
+                      <span className="text-slate-200 font-mono text-xs sm:text-base">{!isExpired && remainingTimeStr}</span>
                     </div>
                   </div>
-                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-                    <span className="text-slate-400 text-xs uppercase tracking-wider mb-2">Expiry Date</span>
-                    <div className="flex flex-col items-center leading-tight gap-1">
-                      <span className="text-white font-semibold text-base">{expiryFormatted.date}</span>
-                      <span className="text-white font-semibold text-base">{expiryFormatted.time}</span>
+                  <div className="bg-[#151f32] border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center">
+                    <span className="text-slate-400 text-[10px] sm:text-xs uppercase tracking-wider mb-2 font-medium">Expiry Date</span>
+                    <div className="flex flex-col items-center leading-tight gap-0.5">
+                      <span className="text-slate-200 font-bold text-[13px] sm:text-base">{isExpired ? 'Expired' : expiryFormatted.date}</span>
+                      <span className="text-slate-400 text-[11px] sm:text-sm">{!isExpired && expiryFormatted.time}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <div className="flex flex-col gap-3 sm:gap-4 pt-2">
                   <button 
                     onClick={startVplinkVerification}
                     disabled={isVerifying}
-                    className={`flex-1 ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-lg`}
+                    className={`w-full ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-base shadow-lg shadow-blue-500/20`}
                   >
-                    {isVerifying ? <RefreshCw size={20} className="animate-spin" /> : <RefreshCw size={20} />}
+                    {isVerifying && <RefreshCw size={18} className="animate-spin" />}
                     Extend Validity
                   </button>
                   <button 
                     onClick={() => setIsManageModalOpen(true)}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-colors duration-200 text-lg"
+                    className="w-full bg-red-600/90 hover:bg-red-500 text-white font-medium py-3.5 rounded-xl transition-colors duration-200 text-base shadow-lg shadow-red-500/20"
                   >
                     Manage Token
                   </button>
@@ -1107,14 +1181,14 @@ export default function App() {
             {hasToken && (
               <>
                 {/* Recommended Players */}
-                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-6 lg:mt-4 shadow-xl">
-                   <h2 className="text-2xl font-bold text-white mb-6">Recommended Players</h2>
-                   <div className="grid grid-cols-1 gap-3">
-                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">NS Player</button>
-                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">OTT Navigator</button>
-                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-lg">TiviMate</button>
+                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 lg:p-8 mt-5 lg:mt-4 shadow-xl">
+                   <h2 className="text-xl lg:text-2xl font-bold text-white mb-4 lg:mb-6">Recommended Players</h2>
+                   <div className="grid grid-cols-1 gap-2.5 lg:gap-3">
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-medium py-3.5 lg:py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-base lg:text-lg">NS Player</button>
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-medium py-3.5 lg:py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-base lg:text-lg">OTT Navigator</button>
+                      <button className="w-full bg-[#1e293b]/60 hover:bg-[#1e293b] text-white font-medium py-3.5 lg:py-4 rounded-xl transition-colors border border-slate-800 shadow-sm text-base lg:text-lg">TiviMate</button>
                    </div>
-                   <div className="mt-6 bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600">
+                   <div className="mt-4 lg:mt-6 bg-[#1e293b]/40 rounded-xl p-4 lg:p-5 border-l-4 border-l-slate-600">
                      <p className="text-slate-400 text-sm leading-relaxed">
                        <span className="font-bold text-slate-300">Note:</span> We cannot share direct application links due to copyright policies. These apps are freely available on the Play Store.
                      </p>
@@ -1122,37 +1196,37 @@ export default function App() {
                 </div>
 
                 {/* Token Verification */}
-                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-8 mt-6 shadow-xl mb-4">
-                   <h2 className="text-2xl font-bold text-white mb-6">Token Verification</h2>
-                   <div className="bg-[#161f30] rounded-2xl p-6 border border-slate-800/80 shadow-inner">
-                      <div className="flex items-center gap-3 text-white font-bold mb-6 text-lg">
-                         <Shield size={22} className="text-blue-400" />
+                <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 lg:p-8 mt-5 lg:mt-6 shadow-xl mb-4">
+                   <h2 className="text-xl lg:text-2xl font-bold text-white mb-4 lg:mb-6">Token Verification</h2>
+                   <div className="bg-[#161f30] rounded-2xl p-5 lg:p-6 border border-slate-800/80 shadow-inner">
+                      <div className="flex items-center gap-2 lg:gap-3 text-white font-bold mb-4 lg:mb-6 text-base lg:text-lg">
+                         <Shield size={20} className="text-blue-400" />
                          Verify Your Token
                       </div>
                       {verifiedUsername ? (
-                         <div className="bg-[#1e293b]/40 rounded-xl p-5 border border-green-500/50 flex flex-col items-center justify-center gap-4 text-center">
-                            <CheckCircle2 size={40} className="text-green-500" />
+                         <div className="bg-[#1e293b]/40 rounded-xl p-4 lg:p-5 border border-green-500/50 flex flex-col items-center justify-center gap-3 lg:gap-4 text-center">
+                            <CheckCircle2 size={36} className="text-green-500 lg:w-[40px] lg:h-[40px]" />
                             <div>
-                               <p className="text-white font-bold text-lg mb-1">Successfully Verified</p>
-                               <p className="text-slate-400 font-mono">{verifiedUsername}</p>
+                               <p className="text-white font-bold text-base lg:text-lg mb-1">Successfully Verified</p>
+                               <p className="text-slate-400 font-mono text-sm lg:text-base">{verifiedUsername}</p>
                             </div>
                             <button 
                                onClick={() => setVerifiedUsername('')} 
-                               className="mt-2 text-sm text-slate-400 hover:text-white underline transition-colors"
+                               className="mt-1 lg:mt-2 text-xs lg:text-sm text-slate-400 hover:text-white underline transition-colors"
                             >
                                Change Username
                             </button>
                          </div>
                       ) : (
-                         <div className="space-y-6">
+                         <div className="space-y-4 lg:space-y-5">
                             <div>
-                              <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2.5 block">USERNAME</label>
+                              <label className="text-slate-400 text-[10px] lg:text-xs font-bold uppercase tracking-widest mb-2 block">USERNAME</label>
                               <input 
                                 type="text" 
                                 value={verificationUsername}
                                 onChange={e => setVerificationUsername(e.target.value)}
                                 placeholder="Telegram or Discord username" 
-                                className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium" 
+                                className="w-full bg-[#111827] border border-slate-700/80 rounded-xl px-4 py-3 lg:px-5 lg:py-4 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 font-medium text-[15px] lg:text-base" 
                               />
                             </div>
                             <button 
@@ -1170,13 +1244,13 @@ export default function App() {
                                     }
                                  }
                               }}
-                              className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-lg"
+                              className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-medium py-3.5 lg:py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-base lg:text-lg"
                             >
-                               <CheckCircle2 size={22} />
+                               <CheckCircle2 size={20} className="lg:w-[22px] lg:h-[22px]" />
                                Verify Username
                             </button>
-                            <div className="bg-[#1e293b]/40 rounded-xl p-5 border-l-4 border-l-slate-600 mt-2">
-                              <p className="text-slate-400 text-sm leading-relaxed">
+                            <div className="bg-[#1e293b]/40 rounded-xl p-4 lg:p-5 border-l-4 border-l-slate-600 mt-2">
+                              <p className="text-slate-400 text-[13px] lg:text-sm leading-relaxed">
                                 <span className="font-bold text-slate-300">Tip:</span> Verification helps you recover your details if you lose access.
                               </p>
                             </div>
