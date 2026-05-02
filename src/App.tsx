@@ -1169,7 +1169,7 @@ export default function App() {
                 <button 
                   onClick={handleGenerate}
                   disabled={isGeneratingToken}
-                  className={`w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors duration-200 text-lg ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-200 text-lg ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isGeneratingToken ? (
                     <>
@@ -1197,7 +1197,7 @@ export default function App() {
 
                     <button 
                       onClick={handleCopy}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-base shadow-lg shadow-blue-500/20"
+                      className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 text-base shadow-lg shadow-blue-500/20"
                     >
                       {copied ? <Check size={18} /> : <Copy size={18} />}
                       {copied ? 'Copied!' : 'Copy'}
@@ -1253,14 +1253,14 @@ export default function App() {
                   <button 
                     onClick={startVplinkVerification}
                     disabled={isVerifying}
-                    className={`w-full ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 text-base shadow-lg shadow-blue-500/20`}
+                    className={`w-full ${isVerifying ? 'bg-blue-600/50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 active:scale-[0.98]'} text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 text-base shadow-lg shadow-blue-500/20`}
                   >
                     {isVerifying && <RefreshCw size={18} className="animate-spin" />}
                     Extend Validity
                   </button>
                   <button 
                     onClick={() => setIsManageModalOpen(true)}
-                    className="w-full bg-red-600/90 hover:bg-red-500 text-white font-medium py-3.5 rounded-xl transition-colors duration-200 text-base shadow-lg shadow-red-500/20"
+                    className="w-full bg-red-600/90 hover:bg-red-500 active:scale-[0.98] text-white font-medium py-3.5 rounded-xl transition-all duration-200 text-base shadow-lg shadow-red-500/20"
                   >
                     Manage Token
                   </button>
@@ -1396,7 +1396,7 @@ export default function App() {
                           setIsRecoverModalOpen(true);
                         }
                       }}
-                      className="w-full text-left px-6 py-4 text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors text-lg"
+                      className="w-full text-left mx-2 px-4 py-3.5 rounded-[16px] text-slate-300 hover:text-white hover:bg-[#1a2538]/60 active:bg-[#1a2538] active:scale-[0.98] transition-all text-lg font-medium"
                     >
                       {item}
                     </button>
