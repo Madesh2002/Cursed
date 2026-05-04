@@ -371,7 +371,12 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
                  } else if (ch.kid && ch.key) {
                      m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
                      m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
-                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.kid}:${ch.key}`);
+                     
+                     // Format as KID:KEY for inputstream.adaptive
+                     const licenseKey = `${ch.kid}:${ch.key}`;
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseKey}`);
+                     m3u.push(`#EXT-X-DRM-ID: clearkey`);
+                     
                      const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
                      m3u.push(`${origin}${targetPath}${uaSnippet}`);
                  } else {
@@ -564,7 +569,38 @@ app.get(['/:token/:id(*)', '/:id(*)'], async (req, res, next) => {
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 
                 const data = await response.arrayBuffer();
-                return res.send(Buffer.from(data));
+                const buffer = Buffer.from(data);
+                
+                // Security: If we expect a manifest but get HTML, it's an error/blocking page
+                if (isManifest && buffer.slice(0, 10).toString().includes('<') && !buffer.slice(0, 10).toString().includes('<?xml')) {
+                    console.error(`Blocked by remote server for channel ${id}: Returned HTML instead of manifest`);
+                    return res.status(503).send("Service Unavailable: Remote server blocking");
+                }
+
+                // If it's a manifest, rewrite relative URLs to absolute
+                if (isManifest) {
+                    let content = buffer.toString();
+                    const baseUrl = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
+                    
+                    if (finalUrl.includes('.m3u8')) {
+                        // For HLS, rewrite lines that don't start with # or http
+                        content = content.split('\n').map(line => {
+                            const trimmed = line.trim();
+                            if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('http')) {
+                                return baseUrl + trimmed;
+                            }
+                            return line;
+                        }).join('\n');
+                    } else if (finalUrl.includes('.mpd')) {
+                        // For DASH, add BaseURL if missing or fix relative paths
+                        if (!content.includes('<BaseURL>')) {
+                             content = content.replace('<Period', `<BaseURL>${baseUrl}</BaseURL>\n<Period`);
+                        }
+                    }
+                    return res.send(content);
+                }
+
+                return res.send(buffer);
             } catch (proxyError) {
                 console.error("Proxy error:", proxyError);
                 res.writeHead(302, { 'Location': finalUrl, 'Access-Control-Allow-Origin': '*' });
