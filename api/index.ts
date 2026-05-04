@@ -355,26 +355,20 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
                  m3u.push(`${ERROR_STREAM}`);
              } else {
                  const uaSnippet = '|User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
-                 if (ch.type === "clearkey") {
+                 if (ch.type === "clearkey" || (ch.kid && ch.key)) {
                      m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
                      m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
                      
-                     const licenseProxyPath = req.params.token ? `/${providedToken}/${ch.channel_id}.key` : `/${ch.channel_id}.key`;
-                     const licenseUrl = `${origin}${licenseProxyPath}${uaSnippet}`;
+                     if (ch.type === "clearkey" && ch.license_url) {
+                        const licenseProxyPath = req.params.token ? `/${providedToken}/${ch.channel_id}.key` : `/${ch.channel_id}.key`;
+                        const licenseUrl = `${origin}${licenseProxyPath}${uaSnippet}`;
+                        m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseUrl}`);
+                        m3u.push(`#EXT-X-LICENSE-URL: ${licenseUrl}`);
+                     } else if (ch.kid && ch.key) {
+                        const licenseKey = `${ch.kid}:${ch.key}`;
+                        m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseKey}`);
+                     }
                      
-                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseUrl}`);
-                     m3u.push(`#EXT-X-LICENSE-URL: ${licenseUrl}`);
-                     m3u.push(`#EXT-X-DRM-ID: ${ch.channel_id}`);
-                     
-                     const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
-                     m3u.push(`${origin}${targetPath}${uaSnippet}`);
-                 } else if (ch.kid && ch.key) {
-                     m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
-                     m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
-                     
-                     // Format as KID:KEY for inputstream.adaptive
-                     const licenseKey = `${ch.kid}:${ch.key}`;
-                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseKey}`);
                      m3u.push(`#EXT-X-DRM-ID: clearkey`);
                      
                      const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
@@ -570,20 +564,29 @@ app.get(['/:token/:id(*)', '/:id(*)'], async (req, res, next) => {
                 
                 const data = await response.arrayBuffer();
                 const buffer = Buffer.from(data);
+                const bodyStr = buffer.slice(0, 100).toString().trim();
                 
-                // Security: If we expect a manifest but get HTML, it's an error/blocking page
-                if (isManifest && buffer.slice(0, 10).toString().includes('<') && !buffer.slice(0, 10).toString().includes('<?xml')) {
-                    console.error(`Blocked by remote server for channel ${id}: Returned HTML instead of manifest`);
-                    return res.status(503).send("Service Unavailable: Remote server blocking");
+                // Security: If we get HTML instead of manifest/license, it's a block page
+                if (bodyStr.toLowerCase().includes('<html') || bodyStr.startsWith('<!')) {
+                    if (!bodyStr.includes('<?xml')) { // DASH manifests are XML, might start with <
+                        console.error(`Blocked by remote server for ${idParam}: Returned HTML instead of content`);
+                        return res.status(403).type('text/plain').send("Access Forbidden by remote source");
+                    }
+                }
+
+                if (isLicense) {
+                    res.setHeader('Content-Type', 'application/octet-stream');
+                    return res.send(buffer);
                 }
 
                 // If it's a manifest, rewrite relative URLs to absolute
                 if (isManifest) {
+                    res.setHeader('Content-Type', contentType || (finalUrl.includes('.mpd') ? 'application/dash+xml' : 'application/x-mpegURL'));
+                    
                     let content = buffer.toString();
                     const baseUrl = finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1);
                     
                     if (finalUrl.includes('.m3u8')) {
-                        // For HLS, rewrite lines that don't start with # or http
                         content = content.split('\n').map(line => {
                             const trimmed = line.trim();
                             if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('http')) {
@@ -592,7 +595,6 @@ app.get(['/:token/:id(*)', '/:id(*)'], async (req, res, next) => {
                             return line;
                         }).join('\n');
                     } else if (finalUrl.includes('.mpd')) {
-                        // For DASH, add BaseURL if missing or fix relative paths
                         if (!content.includes('<BaseURL>')) {
                              content = content.replace('<Period', `<BaseURL>${baseUrl}</BaseURL>\n<Period`);
                         }
