@@ -273,19 +273,22 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         return `#EXTM3U\r\n#EXTINF:-1 tvg-id="error" tvg-name="ERROR: ${cleanMessage}" tvg-logo="" group-title="Error",${cleanMessage}\r\nhttps://xonotice.vercel.app/xoproject.m3u8\r\n`;
     };
 
+    const ERROR_STREAM = "https://xonotice.vercel.app/xoproject.m3u8";
+
     if (!isAllowedUserAgent(req.headers['user-agent'])) {
         res.setHeader('Content-Type', 'application/x-mpegURL');
-        return res.status(200).send(generateErrorM3U('Error: Browser detected or invalid player. Please use a dedicated IPTV player.'));
+        return res.status(200).send(`#EXTM3U\r\n#EXTINF:-1 tvg-id="error" group-title="Error",Browser Detected\r\n${ERROR_STREAM}\r\n`);
     }
 
     if (!req.params.token) {
         res.setHeader('Content-Type', 'application/x-mpegURL');
-        return res.status(200).send(generateErrorM3U('Error: Invalid or missing token. Please use a valid token URL.'));
+        return res.status(200).send(`#EXTM3U\r\n#EXTINF:-1 tvg-id="error" group-title="Error",Missing Token\r\n${ERROR_STREAM}\r\n`);
     }
 
-    if (req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
-        res.setHeader('Content-Type', 'application/x-mpegURL');
-        return res.status(200).send(generateErrorM3U('Error: Token is expired, invalid, or device limit reached.'));
+    // We still call trackAndVerifyDevice to record the device request, but we don't block the playlist download
+    // This allows the playlist to update genres correctly even if expired
+    if (req.params.token !== 'public') {
+        trackAndVerifyDevice(providedToken, ipAddress, userAgent);
     }
 
     try {
@@ -413,7 +416,12 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
     }
 
     if (req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
-        return res.status(200).send('Error: Token is expired, invalid, or device limit reached.');
+        res.writeHead(302, {
+            'Location': 'https://xonotice.vercel.app/xoproject.m3u8',
+            'Content-Type': 'application/x-mpegURL',
+            'Access-Control-Allow-Origin': '*'
+        });
+        return res.end();
     }
 
     try {

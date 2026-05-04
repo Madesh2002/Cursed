@@ -1142,8 +1142,8 @@ export default function App() {
       {/* Header */}
       <header className="flex justify-between items-center py-6 px-4 relative max-w-7xl mx-auto w-full">
         <div className="flex-1 flex flex-col items-center justify-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-indigo-400 tracking-tight text-center">SECRET SOCIETY</h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1 text-center">Your Personal Cypher File</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-indigo-400 tracking-tight text-center">Denver Is Alive</h1>
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 text-center">Your Personal Game File</p>
         </div>
         {hasToken && (
           <button 
@@ -1162,14 +1162,14 @@ export default function App() {
             {!hasToken ? (
               /* Generate Token State */
               <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 lg:p-10 mt-4 shadow-xl">
-                <h2 className="text-2xl font-bold text-white mb-3">Create Your Cypher File</h2>
+                <h2 className="text-2xl font-bold text-white mb-3">Create Your Game File</h2>
                 <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                  Generate your Personal Cypher File URL & Start Playing in Virtual World.
+                  Generate your Personal Game File URL & Start Playing in Virtual World.
                 </p>
                 <button 
                   onClick={handleGenerate}
                   disabled={isGeneratingToken}
-                  className={`w-full lg:w-max px-10 bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-200 text-lg ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full bg-[#4F46E5] hover:bg-[#4338CA] shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] active:scale-[0.97] text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 text-lg ${isGeneratingToken ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isGeneratingToken ? (
                     <>
@@ -1179,7 +1179,7 @@ export default function App() {
                   ) : (
                     <>
                       <AlertTriangle size={20} />
-                      Generate Cypher Token
+                      Generate Game Token
                     </>
                   )}
                 </button>
@@ -1188,7 +1188,7 @@ export default function App() {
               /* Dashboard State */
               <div className="bg-[#111827] border border-slate-800 rounded-2xl p-5 sm:p-8 mt-4 shadow-xl space-y-5">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 lg:mb-6">Your Cypher File Dashboard</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 lg:mb-6">Your Game File Dashboard</h2>
                   
                   <div className="space-y-4">
                     <div className="font-mono text-xs sm:text-sm text-slate-400 break-all bg-slate-900/50 p-4 rounded-lg border border-slate-800/50 select-all text-left">
