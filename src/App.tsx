@@ -80,8 +80,27 @@ export default function App() {
   const [genres, setGenres] = useState<any[]>([]);
   const [totalChannels, setTotalChannels] = useState(0);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [activeGenreModal, setActiveGenreModal] = useState<any | null>(null);
   const [channelSearchQuery, setChannelSearchQuery] = useState('');
+
+  const handleSyncChannels = async () => {
+    setIsSyncing(true);
+    setAdminStatus({ type: '', message: '' });
+    try {
+      const res = await fetch('/api/sync-channels', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setAdminStatus({ type: 'success', message: `Sync successful! ${data.count} channels updated.` });
+        setTotalChannels(data.count);
+      } else {
+        setAdminStatus({ type: 'error', message: data.message || 'Sync failed. Server might be blocking requests.' });
+      }
+    } catch (e: any) {
+      setAdminStatus({ type: 'error', message: `Sync error: ${e.message}` });
+    }
+    setIsSyncing(false);
+  };
 
   useEffect(() => {
     if (currentView === 'customise') {
@@ -917,6 +936,21 @@ export default function App() {
                       {isAdminSaving ? <RefreshCw className="animate-spin" size={20} /> : null}
                       Push Updates to Server
                   </button>
+
+                  <div className="pt-4 border-t border-slate-800">
+                    <p className="text-xs text-slate-500 mb-3 uppercase font-bold tracking-widest">Database Management</p>
+                    <button 
+                      onClick={handleSyncChannels}
+                      disabled={isSyncing}
+                      className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 font-bold py-3.5 rounded-xl border border-indigo-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                        {isSyncing ? <RefreshCw className="animate-spin" size={18} /> : <RefreshCw size={18} />}
+                        Sync Remote Channels
+                    </button>
+                    <p className="text-[10px] text-slate-600 mt-2 text-center">
+                      This will re-run the playlist generator to update SUNNXT and CURSED database.
+                    </p>
+                  </div>
               </div>
 
               {adminStatus.message && (
@@ -1378,7 +1412,8 @@ export default function App() {
                   'IP Manager',
                   'Recover Token',
                   'About Us',
-                  'Contact Us'
+                  'Contact Us',
+                  'Admin Panel'
                 ].map((item) => (
                   <li key={item}>
                     <button 
@@ -1394,6 +1429,8 @@ export default function App() {
                           setCurrentView('customise');
                         } else if (item === 'Recover Token') {
                           setIsRecoverModalOpen(true);
+                        } else if (item === 'Admin Panel') {
+                          setCurrentView('admin');
                         }
                       }}
                       className="w-full text-left mx-2 px-4 py-3.5 rounded-[16px] text-slate-300 hover:text-white hover:bg-[#1a2538]/60 active:bg-[#1a2538] active:scale-[0.98] transition-all text-lg font-medium"

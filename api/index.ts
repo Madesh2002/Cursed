@@ -223,6 +223,31 @@ app.post('/api/settings/config', (req, res) => {
     }
 });
 
+app.post('/api/sync-channels', async (req, res) => {
+    try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+        
+        const { stdout, stderr } = await execAsync('npx tsx playlist.ts');
+        console.log('Sync stdout:', stdout);
+        if (stderr) console.error('Sync stderr:', stderr);
+        
+        const channelsPath = path.join(process.cwd(), 'channels.json');
+        if (fs.existsSync(channelsPath)) {
+            const channels = JSON.parse(fs.readFileSync(channelsPath, 'utf8'));
+            if (channels.length === 0) {
+                return res.json({ success: false, message: 'Sync completed but 0 channels found. Server might be blocking requests.' });
+            }
+            res.json({ success: true, count: channels.length });
+        } else {
+            res.status(500).json({ error: 'channels.json not created after sync' });
+        }
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 function parseM3U(m3uText: string) {
     const lines = m3uText.split(/\r?\n/);
     const channels = [];
@@ -333,9 +358,14 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
                  if (ch.type === "clearkey") {
                      m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
                      m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
-                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.license_url || ''}${uaSnippet}`);
-                     if (ch.license_url) { m3u.push(`#EXT-X-LICENSE-URL: ${ch.license_url}`); }
+                     
+                     const licenseProxyPath = req.params.token ? `/${providedToken}/${ch.channel_id}.key` : `/${ch.channel_id}.key`;
+                     const licenseUrl = `${origin}${licenseProxyPath}${uaSnippet}`;
+                     
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${licenseUrl}`);
+                     m3u.push(`#EXT-X-LICENSE-URL: ${licenseUrl}`);
                      m3u.push(`#EXT-X-DRM-ID: ${ch.channel_id}`);
+                     
                      const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
                      m3u.push(`${origin}${targetPath}${uaSnippet}`);
                  } else if (ch.kid && ch.key) {
@@ -483,17 +513,63 @@ app.get(['/:token/:id(*)', '/:id(*)'], async (req, res, next) => {
         const channels = JSON.parse(channelsRaw);
         
         const channelId = id;
-        let targetUrl = '';
+        let channel: any = null;
         
         for (const ch of channels) {
              if (String(ch.channel_id) === String(channelId)) {
-                  targetUrl = ch.channel_url;
+                  channel = ch;
                   break;
              }
         }
         
-        if (!targetUrl) {
+        if (!channel || !channel.channel_url) {
             return res.status(404).send("Channel not found");
+        }
+        
+        const targetUrl = channel.channel_url;
+        const isManifest = targetUrl.includes('.mpd') || targetUrl.includes('.m3u8') || idParam.includes('.mpd') || idParam.includes('.m3u8');
+        const isLicense = idParam.includes('license') || idParam.includes('key');
+
+        // Proxy for manifests and licenses to avoid UA detection and CORS issues
+        if (isManifest || isLicense) {
+            let finalUrl = targetUrl;
+            if (isLicense && channel.license_url) {
+                finalUrl = channel.license_url;
+            }
+
+            try {
+                const response = await fetch(finalUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                        'Accept': '*/*',
+                        'Referer': finalUrl
+                    }
+                });
+
+                if (!response.ok) {
+                    res.writeHead(302, { 'Location': finalUrl, 'Access-Control-Allow-Origin': '*' });
+                    return res.end();
+                }
+
+                let contentType = response.headers.get('content-type') || '';
+                if (isManifest && !contentType) {
+                    contentType = finalUrl.includes('.mpd') ? 'application/dash+xml' : 'application/x-mpegURL';
+                }
+                if (isLicense) {
+                    contentType = 'application/octet-stream';
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                }
+                
+                if (contentType) res.setHeader('Content-Type', contentType);
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                
+                const data = await response.arrayBuffer();
+                return res.send(Buffer.from(data));
+            } catch (proxyError) {
+                console.error("Proxy error:", proxyError);
+                res.writeHead(302, { 'Location': finalUrl, 'Access-Control-Allow-Origin': '*' });
+                return res.end();
+            }
         }
         
         res.writeHead(302, {
