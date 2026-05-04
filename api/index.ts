@@ -37,6 +37,18 @@ function savePlaylistConfigSync(config: any) {
 }
 
 const app = express();
+
+app.use((req, res, next) => {
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    const isPlayer = ua.includes('tivimate') || ua.includes('ott') || ua.includes('exo') || ua.includes('player') || ua.includes('vlc') || ua.includes('ns');
+    if (req.path === '/' && isPlayer) {
+        return res.redirect('/public/playlist.m3u');
+    }
+    if (req.path.includes('player_api.php') || req.path.includes('get.php')) {
+        return res.status(400).send('Xtream Codes API is not supported. Please add this server as an M3U Playlist using /public/playlist.m3u URL.');
+    }
+    next();
+});
 app.use(cors());
 app.use(express.json());
 
@@ -285,10 +297,11 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
         return res.status(200).send(`#EXTM3U\r\n#EXTINF:-1 tvg-id="error" group-title="Error",Missing Token\r\n${ERROR_STREAM}\r\n`);
     }
 
-    // We still call trackAndVerifyDevice to record the device request, but we don't block the playlist download
-    // This allows the playlist to update genres correctly even if expired
+    let isExpiredToken = false;
     if (req.params.token !== 'public') {
-        trackAndVerifyDevice(providedToken, ipAddress, userAgent);
+        if (!trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+            isExpiredToken = true;
+        }
     }
 
     try {
@@ -415,6 +428,7 @@ app.get('/:token/playlist.m3u8', handlePlaylist);
 
 app.get(['/:token/:id', '/:id'], async (req, res, next) => {
     const idParam = req.params.id;
+    console.log("ROUTE MATCHED:", typeof req.params.token, req.params.token, "> ID >", idParam);
     if (!idParam) return;
     
     // If it's the playlist endpoint, skip this route handler
@@ -422,7 +436,9 @@ app.get(['/:token/:id', '/:id'], async (req, res, next) => {
         return next();
     }
     
-    const id = idParam.replace(/\.(m3u8|mpd|ts)$/, '');
+    // Stop any pipe parameters from messing with the id extraction
+    const rawId = idParam.split('|')[0];
+    const id = rawId.replace(/\.(m3u8|mpd|ts)$/, '');
     const providedToken = req.params.token || 'public';
     
     // allow CORS
