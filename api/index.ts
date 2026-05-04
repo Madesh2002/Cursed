@@ -328,8 +328,22 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
              } else {
                  m3u.push(`#EXTINF:-1 group-title="${ch.group || 'Other'}",Channel`);
              }
-             const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.m3u8` : `/${ch.channel_id}.m3u8`;
-             m3u.push(`${origin}${targetPath}`);
+             if (ch.type === "clearkey") {
+                 m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
+                 m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
+                 m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.license_url || ''}`);
+                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
+                 m3u.push(`${origin}${targetPath}`);
+             } else if (ch.kid && ch.key) {
+                 m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
+                 m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
+                 m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.kid}:${ch.key}`);
+                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
+                 m3u.push(`${origin}${targetPath}`);
+             } else {
+                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.m3u8` : `/${ch.channel_id}.m3u8`;
+                 m3u.push(`${origin}${targetPath}`);
+             }
         });
         
         res.setHeader('Content-Type', 'application/x-mpegURL');
@@ -394,12 +408,17 @@ app.get('/playlist.m3u8', handlePlaylist);
 app.get('/:token/playlist.m3u', handlePlaylist);
 app.get('/:token/playlist.m3u8', handlePlaylist);
 
-app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
-    const id = req.params.id;
-    const providedToken = req.params.token || 'public';
-    if (!id || id === 'playlist') {
-        return;
+app.get(['/:token/:id', '/:id'], async (req, res, next) => {
+    const idParam = req.params.id;
+    if (!idParam) return;
+    
+    // If it's the playlist endpoint, skip this route handler
+    if (idParam.startsWith('playlist.m3u')) {
+        return next();
     }
+    
+    const id = idParam.replace(/\.(m3u8|mpd|ts)$/, '');
+    const providedToken = req.params.token || 'public';
     
     // allow CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -433,7 +452,7 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
         const channelsRaw = fs.readFileSync(channelsPath, 'utf8');
         const channels = JSON.parse(channelsRaw);
         
-        const channelId = id.replace(/\.m3u8$/, '');
+        const channelId = id;
         let targetUrl = '';
         
         for (const ch of channels) {
@@ -449,7 +468,7 @@ app.get(['/:token/:id.m3u8', '/:id.m3u8'], async (req, res) => {
         
         res.writeHead(302, {
             'Location': targetUrl,
-            'Content-Type': 'application/x-mpegURL',
+            'Content-Type': targetUrl.includes('.mpd') ? 'application/dash+xml' : 'application/x-mpegURL',
             'Access-Control-Allow-Origin': '*'
         });
         res.end();
