@@ -1,21 +1,33 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-async function fetchRemoteData(url: string) {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+async function fetchRemoteData(url: string, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          'Accept': '*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+      return await response.text();
+    } catch (err: any) {
+      console.error(`Attempt ${i + 1} failed for ${url}:`, err.message);
+      if (i === retries - 1) return null;
+      await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2s before retry
     }
-    return await response.text();
-  } catch (err) {
-    console.error(`Error fetching from ${url}:`, err);
-    return null;
   }
+  return null;
 }
 
 async function updateChannels() {

@@ -415,10 +415,31 @@ app.get('/:token/playlist.m3u8', handlePlaylist);
 
 app.get(['/:token/:id(*)', '/:id(*)'], async (req, res, next) => {
     const idParam = req.params.id;
-    if (!idParam) return;
+    if (!idParam) return next();
     
-    // If it's the playlist endpoint, skip this route handler
-    if (idParam.startsWith('playlist.m3u')) {
+    // If it's a frontend asset or the playlist endpoint, skip this route handler
+    const isAsset = idParam.startsWith('playlist.m3u') || 
+        idParam.startsWith('src/') || 
+        idParam.startsWith('app/') || 
+        idParam.startsWith('node_modules/') ||
+        idParam.startsWith('@vite/') ||
+        idParam.startsWith('@fs/') ||
+        idParam.startsWith('@id/') ||
+        idParam.startsWith('@/') ||
+        idParam.endsWith('.tsx') ||
+        idParam.endsWith('.ts') ||
+        idParam.endsWith('.css') ||
+        idParam.endsWith('.js') ||
+        idParam.endsWith('.html') ||
+        idParam.endsWith('.ico') ||
+        idParam.endsWith('.png') ||
+        idParam.endsWith('.jpg') ||
+        idParam.endsWith('.svg') ||
+        idParam.endsWith('.json') ||
+        idParam.endsWith('.map');
+
+    const acceptHeader = req.headers.accept || '';
+    if (isAsset || (acceptHeader.includes('text/html') && !idParam.includes('.'))) {
         return next();
     }
     
