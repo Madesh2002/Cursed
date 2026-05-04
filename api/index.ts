@@ -328,21 +328,26 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
              } else {
                  m3u.push(`#EXTINF:-1 group-title="${ch.group || 'Other'}",Channel`);
              }
-             if (ch.type === "clearkey") {
-                 m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
-                 m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
-                 m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.license_url || ''}`);
-                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
-                 m3u.push(`${origin}${targetPath}`);
-             } else if (ch.kid && ch.key) {
-                 m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
-                 m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
-                 m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.kid}:${ch.key}`);
-                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
-                 m3u.push(`${origin}${targetPath}`);
+             if (isExpiredToken) {
+                 m3u.push(`${ERROR_STREAM}`);
              } else {
-                 const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.m3u8` : `/${ch.channel_id}.m3u8`;
-                 m3u.push(`${origin}${targetPath}`);
+                 const uaSnippet = '|User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+                 if (ch.type === "clearkey") {
+                     m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.license_url || ''}${uaSnippet}`);
+                     const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
+                     m3u.push(`${origin}${targetPath}${uaSnippet}`);
+                 } else if (ch.kid && ch.key) {
+                     m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
+                     m3u.push(`#KODIPROP:inputstream.adaptive.license_key=${ch.kid}:${ch.key}`);
+                     const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.mpd` : `/${ch.channel_id}.mpd`;
+                     m3u.push(`${origin}${targetPath}${uaSnippet}`);
+                 } else {
+                     const targetPath = req.params.token ? `/${providedToken}/${ch.channel_id}.m3u8` : `/${ch.channel_id}.m3u8`;
+                     m3u.push(`${origin}${targetPath}${uaSnippet}`);
+                 }
              }
         });
         
@@ -435,6 +440,9 @@ app.get(['/:token/:id', '/:id'], async (req, res, next) => {
     }
 
     if (req.params.token !== 'public' && !trackAndVerifyDevice(providedToken, ipAddress, userAgent)) {
+        if (idParam.includes('.mpd')) {
+             return res.status(403).send('Error: Token is expired, invalid, or device limit reached.');
+        }
         res.writeHead(302, {
             'Location': 'https://xonotice.vercel.app/xoproject.m3u8',
             'Content-Type': 'application/x-mpegURL',
