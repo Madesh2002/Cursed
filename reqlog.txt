@@ -1,0 +1,5 @@
+REQ: GET /public/001.mpd /public/001.mpd
+HELLO: 001
+REQ: GET /public/002.mpd%7CUser-Agent=Mozilla/5.0 /public/002.mpd%7CUser-Agent=Mozilla/5.0
+REQ: GET /public/001.mpd%7CUser-Agent=Mozilla/5.0 /public/001.mpd%7CUser-Agent=Mozilla/5.0
+HELLO: 001

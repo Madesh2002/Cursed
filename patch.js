@@ -1,0 +1,1 @@
+const fs = require('fs'); let content = fs.readFileSync('api/index.ts', 'utf8'); content = content.replace(/m3u.push(\);/, 'm3u.push();\n                     if (ch.license_url) { m3u.push(); }\n                     m3u.push();'); fs.writeFileSync('api/index.ts', content);
