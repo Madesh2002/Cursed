@@ -329,7 +329,7 @@ const handlePlaylist = async (req: express.Request, res: express.Response) => {
              if (isExpiredToken) {
                  m3u.push(`${ERROR_STREAM}`);
              } else {
-                 const uaSnippet = '';
+                 const uaSnippet = '|User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
                  if (ch.type === "clearkey") {
                      m3u.push(`#KODIPROP:inputstream.adaptive.manifest_type=mpd`);
                      m3u.push(`#KODIPROP:inputstream.adaptive.license_type=clearkey`);
